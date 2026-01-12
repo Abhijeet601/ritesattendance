@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic[email]
+python-multipart
+mysql-connector-python
+passlib[bcrypt]
+PyJWT
+face-recognition
+opencv-python
+numpy
+Pillow
+geopy
+python-jose[cryptography]
