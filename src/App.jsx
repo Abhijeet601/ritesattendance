@@ -1,0 +1,69 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Pages
+import EmployeeRegistration from './pages/EmployeeRegistration';
+import EmployeeLogin from './pages/EmployeeLogin';
+import Dashboard from './pages/Dashboard';
+import Attendance from './pages/Attendance';
+import MyAttendance from './pages/MyAttendance';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/register" element={<EmployeeRegistration />} />
+            <Route path="/login" element={<EmployeeLogin />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/" element={<EmployeeLogin />} />
+
+            {/* Protected Employee Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/attendance"
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <Attendance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-attendance"
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <MyAttendance />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Admin Routes */}
+            <Route
+              path="/admin-dashboard"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+export default App;
