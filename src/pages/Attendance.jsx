@@ -54,6 +54,8 @@ const Attendance = () => {
     setCapturedImage(blob);
   };
 
+
+
   // ================= SUBMIT =================
   const handleSubmit = async () => {
     if (!capturedImage) {
@@ -168,7 +170,7 @@ const Attendance = () => {
             )}
           </motion.div>
 
-          {/* CAMERA CARD */}
+          {/* FACE VERIFICATION CARD */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -179,14 +181,17 @@ const Attendance = () => {
               <Camera className="text-purple-600" /> Face Verification
             </h2>
 
-            <CameraCapture
-              onCapture={handleImageCapture}
-              buttonText="Capture Face"
-            />
-
-            {capturedImage && (
-              <p className="text-green-600 mt-3">✓ Image captured successfully</p>
-            )}
+            <div className="space-y-4">
+              <div>
+                <CameraCapture
+                  onCapture={handleImageCapture}
+                  buttonText="Capture Face"
+                />
+                {capturedImage && (
+                  <p className="text-green-600 mt-2">✓ Face image captured successfully</p>
+                )}
+              </div>
+            </div>
           </motion.div>
         </div>
 
