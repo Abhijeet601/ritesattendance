@@ -499,6 +499,7 @@ const AdminDashboard = () => {
                   <th className="p-4">Emp ID</th>
                   <th className="p-4">Name</th>
                   <th className="p-4">Check-in</th>
+                  <th className="p-4">Check-out</th>
                   <th className="p-4">Status</th>
                   <th className="p-4">Action</th>
                 </tr>
@@ -509,6 +510,7 @@ const AdminDashboard = () => {
                     <td className="p-4">{att.employee_id}</td>
                     <td className="p-4">{att.name}</td>
                     <td className="p-4">{new Date(att.check_in_time).toLocaleString()}</td>
+                    <td className="p-4">{att.check_out_time ? new Date(att.check_out_time).toLocaleString() : 'Not checked out'}</td>
                     <td className="p-4">{att.system_status}</td>
                     <td className="p-4 space-x-2">
                       <button
@@ -741,6 +743,16 @@ const AdminDashboard = () => {
                   <option value="B">B</option>
                   <option value="C">C</option>
                   <option value="general">General</option>
+                  <option value="01:00-09:30">01:00-09:30</option>
+                  <option value="06:00-14:30">06:00-14:30</option>
+                  <option value="08:00-16:30">08:00-16:30</option>
+                  <option value="09:00-17:30">09:00-17:30</option>
+                  <option value="10:00-18:00">10:00-18:00</option>
+                  <option value="10:00-18:30">10:00-18:30</option>
+                  <option value="14:00-22:30">14:00-22:30</option>
+                  <option value="17:00-01:30">17:00-01:30</option>
+                  <option value="21:00-05:30">21:00-05:30</option>
+                  <option value="22:00-06:30">22:00-06:30</option>
                 </select>
                 <input type="date" className="border p-2 rounded"
                   onChange={e => setFilters({ ...filters, start_date: e.target.value })} />

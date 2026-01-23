@@ -11,6 +11,7 @@ const EmployeeLogin = () => {
     password: '',
     shift: 'general',
   });
+  const [showOtherShifts, setShowOtherShifts] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -134,7 +135,10 @@ const EmployeeLogin = () => {
                 <select
                   name="shift"
                   value={formData.shift}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    setShowOtherShifts(e.target.value === 'other');
+                  }}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg
                     focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 >
@@ -142,8 +146,32 @@ const EmployeeLogin = () => {
                   <option value="B">Shift B (14:00 - 22:00)</option>
                   <option value="C">Shift C (22:00 - 06:00)</option>
                   <option value="general">General (09:00 - 17:00)</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
+              {showOtherShifts && (
+                <div className="mt-2 relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <select
+                    name="shift"
+                    value={formData.shift}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg
+                      focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                  >
+                    <option value="01:00-09:30">01:00 - 09:30</option>
+                    <option value="06:00-14:30">06:00 - 14:30</option>
+                    <option value="08:00-16:30">08:00 - 16:30</option>
+                    <option value="09:00-17:30">09:00 - 17:30</option>
+                    <option value="10:00-18:00">10:00 - 18:00</option>
+                    <option value="10:00-18:30">10:00 - 18:30</option>
+                    <option value="14:00-22:30">14:00 - 22:30</option>
+                    <option value="17:00-01:30">17:00 - 01:30 (Night)</option>
+                    <option value="21:00-05:30">21:00 - 05:30 (Night)</option>
+                    <option value="22:00-06:30">22:00 - 06:30 (Night)</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* BUTTON */}
