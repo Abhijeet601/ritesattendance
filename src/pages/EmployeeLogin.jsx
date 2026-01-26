@@ -1,17 +1,42 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Lock, Clock, LogIn, Shield } from 'lucide-react';
+import { User, Lock, Clock, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
+
+const REQUIRED_WORK_MINUTES = 8 * 60 + 30; // ✅ 510 minutes = 8:30
+
+const SHIFT_MAP = {
+  A: { label: 'Shift A (06:00 - 14:30)', time: '06:00-14:30' },   // ✅ 8:30
+  B: { label: 'Shift B (14:00 - 22:30)', time: '14:00-22:30' },   // ✅ 8:30
+  C: { label: 'Shift C (22:00 - 06:30)', time: '22:00-06:30' },   // ✅ 8:30
+  general: { label: 'General (09:00 - 17:30)', time: '09:00-17:30' }, // ✅ 8:30
+  other: { label: 'Other (Choose timing)', time: null },
+};
+
+const OTHER_SHIFT_OPTIONS = [
+  // ✅ keep 8:30 options at top
+  { label: '06:00 - 14:30 (8:30)', value: '06:00-14:30' },
+  { label: '08:00 - 16:30 (8:30)', value: '08:00-16:30' },
+  { label: '09:00 - 17:30 (8:30)', value: '09:00-17:30' },
+  { label: '10:00 - 18:30 (8:30)', value: '10:00-18:30' },
+  { label: '14:00 - 22:30 (8:30)', value: '14:00-22:30' },
+  { label: '17:00 - 01:30 (Night) (8:30)', value: '17:00-01:30' },
+  { label: '21:00 - 05:30 (Night) (8:30)', value: '21:00-05:30' },
+  { label: '22:00 - 06:30 (Night) (8:30)', value: '22:00-06:30' },
+
+  // If you want ONLY 8:30 options, remove any non-8:30 entries.
+];
 
 const EmployeeLogin = () => {
   const [formData, setFormData] = useState({
     employee_id: '',
     password: '',
-    shift: 'general',
+    shift_type: 'general',       // A | B | C | general | other
+    custom_shift: '09:00-17:30', // used only when shift_type === other
   });
-  const [showOtherShifts, setShowOtherShifts] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,10 +44,30 @@ const EmployeeLogin = () => {
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+    const { name, value } = e.target;
+
+    setFormData((prev) => {
+      // shift_type changed
+      if (name === 'shift_type') {
+        // When switching away from "other", keep custom_shift but it won't be used.
+        // When switching to "other", ensure custom_shift has a default.
+        return {
+          ...prev,
+          shift_type: value,
+          custom_shift: value === 'other' ? (prev.custom_shift || '09:00-17:30') : prev.custom_shift,
+        };
+      }
+
+      return { ...prev, [name]: value };
     });
+  };
+
+  const getSelectedShiftTime = () => {
+    // If other: use custom shift timing
+    if (formData.shift_type === 'other') return formData.custom_shift;
+
+    // For A/B/C/general: mapped 8:30 timings
+    return SHIFT_MAP[formData.shift_type]?.time || '09:00-17:30';
   };
 
   const handleSubmit = async (e) => {
@@ -31,12 +76,36 @@ const EmployeeLogin = () => {
     setError('');
 
     try {
-      const response = await api.post('/api/login', formData);
+      const selectedShiftTime = getSelectedShiftTime();
 
+      // ✅ Recommended payload (login should validate only id+password)
+      const payload = {
+        employee_id: formData.employee_id,
+        password: formData.password,
+      };
+
+      // ✅ If your backend needs shift at login, use this payload instead:
+      // const payload = {
+      //   employee_id: formData.employee_id,
+      //   password: formData.password,
+      //   shift_type: formData.shift_type,
+      //   shift_time: selectedShiftTime, // e.g. "09:00-17:30"
+      //   required_work_minutes: REQUIRED_WORK_MINUTES, // 510
+      // };
+
+      const response = await api.post('/api/login', payload);
+
+      // ✅ Save shift info locally for whole app usage
       const userData = {
         employee_id: response.data.user_name,
         role: 'employee',
-        shift: response.data.shift,
+
+        // store shift selection
+        shift_type: formData.shift_type,
+        shift_time: selectedShiftTime, // ✅ always 8:30 timing selected
+
+        // store required working hours
+        required_work_minutes: REQUIRED_WORK_MINUTES, // ✅ 510 (8:30)
       };
 
       login(userData, response.data.access_token);
@@ -48,9 +117,10 @@ const EmployeeLogin = () => {
     }
   };
 
+  const showOther = formData.shift_type === 'other';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -72,6 +142,11 @@ const EmployeeLogin = () => {
             </h2>
             <p className="text-gray-600 text-center">
               Access your attendance dashboard
+            </p>
+
+            {/* ✅ Always show working hours rule */}
+            <p className="mt-2 text-xs text-gray-500">
+              Working hours required: <span className="font-semibold">8:30</span> (510 minutes)
             </p>
           </div>
 
@@ -125,53 +200,58 @@ const EmployeeLogin = () => {
               </div>
             </div>
 
-            {/* SHIFT */}
+            {/* SHIFT TYPE */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Shift
+                Shift Type
               </label>
+
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <select
-                  name="shift"
-                  value={formData.shift}
-                  onChange={(e) => {
-                    handleInputChange(e);
-                    setShowOtherShifts(e.target.value === 'other');
-                  }}
+                  name="shift_type"
+                  value={formData.shift_type}
+                  onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg
                     focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
                 >
-                  <option value="A">Shift A (06:00 - 14:00)</option>
-                  <option value="B">Shift B (14:00 - 22:00)</option>
-                  <option value="C">Shift C (22:00 - 06:00)</option>
-                  <option value="general">General (09:00 - 17:00)</option>
-                  <option value="other">Other</option>
+                  <option value="A">{SHIFT_MAP.A.label}</option>
+                  <option value="B">{SHIFT_MAP.B.label}</option>
+                  <option value="C">{SHIFT_MAP.C.label}</option>
+                  <option value="general">{SHIFT_MAP.general.label}</option>
+                  <option value="other">{SHIFT_MAP.other.label}</option>
                 </select>
               </div>
-              {showOtherShifts && (
-                <div className="mt-2 relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <select
-                    name="shift"
-                    value={formData.shift}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg
-                      focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                  >
-                    <option value="01:00-09:30">01:00 - 09:30</option>
-                    <option value="06:00-14:30">06:00 - 14:30</option>
-                    <option value="08:00-16:30">08:00 - 16:30</option>
-                    <option value="09:00-17:30">09:00 - 17:30</option>
-                    <option value="10:00-18:00">10:00 - 18:00</option>
-                    <option value="10:00-18:30">10:00 - 18:30</option>
-                    <option value="14:00-22:30">14:00 - 22:30</option>
-                    <option value="17:00-01:30">17:00 - 01:30 (Night)</option>
-                    <option value="21:00-05:30">21:00 - 05:30 (Night)</option>
-                    <option value="22:00-06:30">22:00 - 06:30 (Night)</option>
-                  </select>
+
+              {/* OTHER SHIFT TIMINGS */}
+              {showOther && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Shift Timing
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <select
+                      name="custom_shift"
+                      value={formData.custom_shift}
+                      onChange={handleInputChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg
+                        focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+                    >
+                      {OTHER_SHIFT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
+
+              {/* Preview */}
+              <p className="mt-2 text-xs text-gray-500">
+                Selected shift timing: <span className="font-semibold">{getSelectedShiftTime()}</span> (8:30)
+              </p>
             </div>
 
             {/* BUTTON */}
@@ -200,17 +280,11 @@ const EmployeeLogin = () => {
 
           {/* LINKS */}
           <div className="mt-6 pt-6 border-t border-gray-200 text-center space-y-2">
-            <Link
-              to="/register"
-              className="block text-blue-600 hover:text-blue-800 transition"
-            >
+            <Link to="/register" className="block text-blue-600 hover:text-blue-800 transition">
               Don’t have an account? Register
             </Link>
 
-            <Link
-              to="/admin-login"
-              className="block text-gray-500 hover:text-gray-800 transition"
-            >
+            <Link to="/admin-login" className="block text-gray-500 hover:text-gray-800 transition">
               Admin Login
             </Link>
           </div>
