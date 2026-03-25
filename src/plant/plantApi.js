@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-const backendBaseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8001')
-  .trim()
-  .replace(/\/+$/, '');
+const configuredBackendUrl = import.meta.env.VITE_BACKEND_URL?.trim();
+const fallbackBackendUrl =
+  typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8001';
+const backendBaseUrl = (configuredBackendUrl || fallbackBackendUrl).replace(/\/+$/, '');
 
 const plantApi = axios.create({
   baseURL: backendBaseUrl,
