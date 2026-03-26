@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable react/prop-types */
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,7 +7,6 @@ import {
   Users,
   Calendar,
   Clock,
-  LogOut,
   AlertTriangle,
   TrendingUp,
   BarChart3,
@@ -14,7 +14,11 @@ import {
   AlertCircle,
   XCircle,
   Menu,
-  X
+  X,
+  MapPin,
+  Search,
+  ChevronDown,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
@@ -30,8 +34,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell
@@ -51,6 +53,170 @@ const MONTH_OPTIONS = [
   { value: 11, label: 'November' },
   { value: 12, label: 'December' }
 ];
+
+const PREDEFINED_LOCATIONS = [
+  { name: 'Kapa', state: 'CG', latitude: 21.270712169408366, longitude: 81.64517871261087 },
+  { name: 'Bhanpuri', state: 'CG', latitude: 21.300323200531217, longitude: 81.64516446133246 },
+  { name: 'Kargi Road', state: 'CG', latitude: 22.296546435467572, longitude: 82.02841337112748 },
+  { name: 'Dongargarh', state: 'CG', latitude: 21.19230105122952, longitude: 80.77146186025485 },
+  { name: 'Bankhedi', state: 'MP', latitude: 22.776734663024477, longitude: 78.53876523874744 },
+  { name: 'Bareth', state: 'MP', latitude: 23.914608906021233, longitude: 78.00020154384093 },
+  { name: 'Guna', state: 'MP', latitude: 24.63328697287693, longitude: 77.25393941962595 },
+  { name: 'Shamgarh', state: 'MP', latitude: 24.20048364832401, longitude: 75.64746639044058 },
+  { name: 'Khandwa', state: 'MP', latitude: 21.8127882060225, longitude: 76.34575677631726 },
+  { name: 'GIPL Raipur', state: 'CG', latitude: 21.37355170198243, longitude: 81.6869297159275 }
+];
+
+const buildLocationValue = ({ name, state }) => `${name}__${state}`;
+const formatLocationLabel = ({ name, state }) => `${name} (${state})`;
+
+const LOCATION_OPTIONS = PREDEFINED_LOCATIONS.map((location) => ({
+  ...location,
+  value: buildLocationValue(location),
+  label: formatLocationLabel(location),
+  searchText: `${location.name} ${location.state}`.toLowerCase()
+}));
+
+const getLocationByValue = (value) => LOCATION_OPTIONS.find((location) => location.value === value) || null;
+
+const matchLocationOption = ({ name, state, latitude, longitude }) => (
+  LOCATION_OPTIONS.find((location) => {
+    const hasSameName = location.name === name;
+    const hasSameState = !state || location.state === state;
+    const hasSameCoordinates = Number(latitude) === location.latitude && Number(longitude) === location.longitude;
+    return (hasSameName && hasSameState) || hasSameCoordinates;
+  }) || null
+);
+
+const LocationSelect = ({
+  value,
+  onChange,
+  placeholder = 'Select a location',
+  helperText = 'Pick one of the approved base locations',
+  showCoordinates = true
+}) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef(null);
+  const selectedLocation = getLocationByValue(value);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredLocations = LOCATION_OPTIONS.filter((location) => (
+    !normalizedQuery || location.searchText.includes(normalizedQuery)
+  ));
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('');
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="space-y-3">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between rounded-2xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/80 px-4 py-3 text-left shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <MapPin size={18} />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-slate-900">
+                {selectedLocation ? selectedLocation.label : placeholder}
+              </span>
+              <span className="block truncate text-xs text-slate-500">{helperText}</span>
+            </span>
+          </span>
+          <ChevronDown
+            size={18}
+            className={`shrink-0 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.98 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-30 overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl shadow-emerald-100/60"
+            >
+              <div className="border-b border-slate-100 p-3">
+                <div className="relative">
+                  <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search location"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto p-2">
+                {filteredLocations.length > 0 ? filteredLocations.map((location) => {
+                  const isSelected = value === location.value;
+                  return (
+                    <button
+                      key={location.value}
+                      type="button"
+                      onClick={() => {
+                        onChange(location.value);
+                        setOpen(false);
+                      }}
+                      className={`mb-1 flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left transition last:mb-0 ${
+                        isSelected ? 'bg-emerald-50 text-emerald-900' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>
+                        <span className="block text-sm font-semibold">{location.label}</span>
+                        <span className="block text-xs text-slate-500">
+                          {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                        </span>
+                      </span>
+                      {isSelected && <CheckCircle2 size={18} className="text-emerald-600" />}
+                    </button>
+                  );
+                }) : (
+                  <div className="px-3 py-6 text-center text-sm text-slate-500">
+                    No predefined location matched your search.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {showCoordinates && selectedLocation && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Latitude</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">{selectedLocation.latitude}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Longitude</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">{selectedLocation.longitude}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const toLocalDateInputValue = (dateObj = new Date()) => {
   const tzOffsetMs = dateObj.getTimezoneOffset() * 60000;
@@ -116,12 +282,14 @@ const AdminDashboard = () => {
     mobile_number: '',
     base_location_lat: '',
     base_location_lon: '',
-    base_location_name: ''
+    base_location_name: '',
+    base_location_state: '',
+    location_value: ''
   });
+  const [registrationLocationSelections, setRegistrationLocationSelections] = useState({});
   const [resetPasswordEmployee, setResetPasswordEmployee] = useState(null);
   const [newPassword, setNewPassword] = useState('');
 
-  const [adminProfile, setAdminProfile] = useState(null);
   const [passwordForm, setPasswordForm] = useState({
     current_password: '',
     new_password: '',
@@ -206,6 +374,15 @@ const AdminDashboard = () => {
     try {
       const res = await api.get('/api/admin/pending-registrations');
       setPendingRegistrations(res.data.pending_users);
+      setRegistrationLocationSelections((prev) => {
+        const next = {};
+        (res.data.pending_users || []).forEach((user) => {
+          if (prev[user.id]) {
+            next[user.id] = prev[user.id];
+          }
+        });
+        return next;
+      });
     } catch {
       setError('Failed to fetch pending registrations');
     } finally {
@@ -291,6 +468,7 @@ const AdminDashboard = () => {
         base_location_lat: updatedData.base_location_lat === '' ? null : Number(updatedData.base_location_lat),
         base_location_lon: updatedData.base_location_lon === '' ? null : Number(updatedData.base_location_lon),
       };
+      delete payload.location_value;
       await api.put(`/api/admin/employees/${employeeId}`, payload);
       fetchEmployees();
       setEditingEmployee(null);
@@ -300,7 +478,9 @@ const AdminDashboard = () => {
         mobile_number: '',
         base_location_lat: '',
         base_location_lon: '',
-        base_location_name: ''
+        base_location_name: '',
+        base_location_state: '',
+        location_value: ''
       });
       showToast('Employee profile updated', 'success');
     } catch (e) {
@@ -330,6 +510,13 @@ const AdminDashboard = () => {
   };
 
   const startEditing = (employee) => {
+    const matchedLocation = matchLocationOption({
+      name: employee.base_location_name,
+      state: employee.base_location_state,
+      latitude: employee.base_location_lat,
+      longitude: employee.base_location_lon
+    });
+
     setEditingEmployee(employee.id);
     setEditForm({
       name: employee.name,
@@ -337,7 +524,9 @@ const AdminDashboard = () => {
       mobile_number: employee.mobile_number,
       base_location_lat: employee.base_location_lat,
       base_location_lon: employee.base_location_lon,
-      base_location_name: employee.base_location_name
+      base_location_name: employee.base_location_name,
+      base_location_state: employee.base_location_state || matchedLocation?.state || '',
+      location_value: matchedLocation?.value || ''
     });
   };
 
@@ -349,18 +538,53 @@ const AdminDashboard = () => {
       mobile_number: '',
       base_location_lat: '',
       base_location_lon: '',
-      base_location_name: ''
+      base_location_name: '',
+      base_location_state: '',
+      location_value: ''
     });
   };
 
   const approveRegistration = async (id, baseLocation) => {
-    await api.post('/api/admin/approve-user', {
-      user_id: id,
-      base_location_lat: baseLocation.lat,
-      base_location_lon: baseLocation.lon,
-      base_location_name: baseLocation.name
-    });
-    fetchPendingRegistrations();
+    if (!baseLocation) {
+      showToast('Select a predefined location before approving', 'error');
+      return;
+    }
+
+    try {
+      await api.post('/api/admin/approve-user', {
+        user_id: id,
+        base_location_lat: baseLocation.latitude,
+        base_location_lon: baseLocation.longitude,
+        base_location_name: baseLocation.name,
+        base_location_state: baseLocation.state
+      });
+      fetchPendingRegistrations();
+      showToast('User approved successfully', 'success');
+    } catch (e) {
+      setError(e?.response?.data?.detail || 'Failed to approve user');
+      showToast('Failed to approve user', 'error');
+    }
+  };
+
+  const handleRegistrationLocationChange = (registrationId, locationValue) => {
+    setRegistrationLocationSelections((prev) => ({
+      ...prev,
+      [registrationId]: locationValue
+    }));
+  };
+
+  const handleEditLocationChange = (locationValue) => {
+    const selectedLocation = getLocationByValue(locationValue);
+    if (!selectedLocation) return;
+
+    setEditForm((prev) => ({
+      ...prev,
+      location_value: locationValue,
+      base_location_name: selectedLocation.name,
+      base_location_state: selectedLocation.state,
+      base_location_lat: selectedLocation.latitude,
+      base_location_lon: selectedLocation.longitude
+    }));
   };
 
   const handleAttendanceAction = async (id, status) => {
@@ -378,38 +602,10 @@ const AdminDashboard = () => {
     }
   };
 
-  const exportToCSV = () => {
-    const headers = [
-      'Employee ID','Name','Check-in Date','Check-in Time',
-      'Check-out Time','Work Hours','Shift','System Status','Admin Status'
-    ];
-
-    const rows = attendanceReport.map(r => [
-      r.employee_id,
-      r.name,
-      r.check_in_time ? new Date(r.check_in_time).toLocaleDateString() : 'N/A',
-      r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString() : 'N/A',
-      r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString() : 'N/A',
-      r.work_hours || 'N/A',
-      r.shift,
-      r.system_status,
-      r.admin_status
-    ]);
-
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'attendance_report.csv';
-    a.click();
-  };
-
   const fetchAdminProfile = async () => {
     setLoading(true);
     try {
       const res = await api.get('/api/admin/profile');
-      setAdminProfile(res.data.admin);
       setProfileForm({
         name: res.data.admin.name,
         email: res.data.admin.email,
@@ -972,7 +1168,7 @@ const AdminDashboard = () => {
             </div>
 
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
-              <p className="text-green-100 text-sm">Today's Attendance</p>
+              <p className="text-green-100 text-sm">Today&apos;s Attendance</p>
               <p className="text-4xl font-bold">{stats.todayAttendance}</p>
               <Calendar className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
@@ -1026,33 +1222,28 @@ const AdminDashboard = () => {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <input
-                      placeholder="Location Name"
-                      className="w-full border rounded-lg p-2 text-sm"
-                      onChange={e => reg.baseLocationName = e.target.value}
+                  <div className="rounded-[28px] border border-emerald-100 bg-[linear-gradient(180deg,rgba(240,253,244,0.88)_0%,rgba(255,255,255,1)_100%)] p-4 shadow-sm">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                        <MapPin size={20} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Assign Base Location</p>
+                        <p className="text-xs text-slate-500">Select one approved site before registration approval.</p>
+                      </div>
+                    </div>
+
+                    <LocationSelect
+                      value={registrationLocationSelections[reg.id] || ''}
+                      onChange={(locationValue) => handleRegistrationLocationChange(reg.id, locationValue)}
+                      placeholder="Choose work location"
+                      helperText="Search by location or state"
                     />
-                    <input
-                      placeholder="Latitude"
-                      type="number"
-                      step="any"
-                      className="w-full border rounded-lg p-2 text-sm"
-                      onChange={e => reg.baseLocationLat = e.target.value}
-                    />
-                    <input
-                      placeholder="Longitude"
-                      type="number"
-                      step="any"
-                      className="w-full border rounded-lg p-2 text-sm"
-                      onChange={e => reg.baseLocationLon = e.target.value}
-                    />
+
                     <button
-                      onClick={() => approveRegistration(reg.id, {
-                        lat: reg.baseLocationLat,
-                        lon: reg.baseLocationLon,
-                        name: reg.baseLocationName
-                      })}
-                      className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
+                      onClick={() => approveRegistration(reg.id, getLocationByValue(registrationLocationSelections[reg.id]))}
+                      disabled={!registrationLocationSelections[reg.id]}
+                      className="mt-4 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:from-emerald-600 hover:to-green-700 disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-400"
                     >
                       Approve
                     </button>
@@ -1327,34 +1518,25 @@ const AdminDashboard = () => {
                     </td>
                     <td className="p-2 sm:p-4">
                       {editingEmployee === emp.id ? (
-                        <div className="space-y-1 flex flex-col">
-                          <input
-                            type="text"
-                            placeholder="Location Name"
-                            value={editForm.base_location_name}
-                            onChange={(e) => setEditForm({ ...editForm, base_location_name: e.target.value })}
-                            className="w-full border rounded p-1 text-xs sm:text-sm"
+                        <div className="min-w-[260px] space-y-2">
+                          <LocationSelect
+                            value={editForm.location_value}
+                            onChange={handleEditLocationChange}
+                            placeholder="Choose base location"
+                            helperText="Search predefined work sites"
                           />
-                          <input
-                            type="number"
-                            step="any"
-                            placeholder="Lat"
-                            value={editForm.base_location_lat}
-                            onChange={(e) => setEditForm({ ...editForm, base_location_lat: e.target.value })}
-                            className="w-full border rounded p-1 text-xs sm:text-sm"
-                          />
-                          <input
-                            type="number"
-                            step="any"
-                            placeholder="Lon"
-                            value={editForm.base_location_lon}
-                            onChange={(e) => setEditForm({ ...editForm, base_location_lon: e.target.value })}
-                            className="w-full border rounded p-1 text-xs sm:text-sm"
-                          />
+                          {editForm.base_location_name && !editForm.location_value && (
+                            <p className="text-xs text-amber-600">
+                              Current location is outside the predefined list. Choose a listed location to replace it.
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div>
-                          <p className="font-medium">{emp.base_location_name}</p>
+                          <p className="font-medium">
+                            {emp.base_location_name}
+                            {emp.base_location_state ? ` (${emp.base_location_state})` : ''}
+                          </p>
                           <p className="text-sm text-gray-600">
                             {emp.base_location_lat}, {emp.base_location_lon}
                           </p>
