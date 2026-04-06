@@ -109,10 +109,14 @@ const EmployeeLogin = () => {
 
     try {
       const selectedShiftTime = getSelectedShiftTime();
+      const selectedShift = formData.shift_type === 'other'
+        ? selectedShiftTime
+        : formData.shift_type;
 
       const payload = {
         employee_id: formData.employee_id,
         password: formData.password,
+        shift: selectedShift,
       };
 
       const response = await api.post('/api/login', payload);
@@ -129,8 +133,10 @@ const EmployeeLogin = () => {
       }
 
       const userData = {
-        employee_id: response.data.user_name,
+        employee_id: formData.employee_id,
+        name: response.data.user_name,
         role: 'employee',
+        shift: response.data.shift || selectedShift,
         shift_type: formData.shift_type,
         shift_time: selectedShiftTime,
         required_work_minutes: REQUIRED_WORK_MINUTES,

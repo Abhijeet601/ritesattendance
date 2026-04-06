@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -223,6 +223,14 @@ const toLocalDateInputValue = (dateObj = new Date()) => {
   return new Date(dateObj.getTime() - tzOffsetMs).toISOString().split('T')[0];
 };
 
+const toDateTimeLocalInputValue = (value) => {
+  if (!value) return '';
+  const dateObj = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(dateObj.getTime())) return '';
+  const tzOffsetMs = dateObj.getTimezoneOffset() * 60000;
+  return new Date(dateObj.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+};
+
 const TAB_META = {
   dashboard: {
     eyebrow: 'Command Center',
@@ -310,6 +318,13 @@ const AdminDashboard = () => {
   const [attendancePage, setAttendancePage] = useState(1);
   const [attendancePageSize, setAttendancePageSize] = useState(200);
   const [attendanceTotalRecords, setAttendanceTotalRecords] = useState(0);
+  const [editingAttendanceId, setEditingAttendanceId] = useState(null);
+  const [attendanceEditForm, setAttendanceEditForm] = useState({
+    check_in_time: '',
+    check_out_time: '',
+    work_hours: '',
+    remarks: ''
+  });
 
   // Monthly report states
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
@@ -599,6 +614,52 @@ const AdminDashboard = () => {
     } catch (e) {
       setError(e?.response?.data?.detail || 'Failed to update attendance status');
       showToast('Failed to update attendance status', 'error');
+    }
+  };
+
+  const startAttendanceEdit = (attendance) => {
+    setEditingAttendanceId(attendance.id);
+    setAttendanceEditForm({
+      check_in_time: toDateTimeLocalInputValue(attendance.check_in_time),
+      check_out_time: toDateTimeLocalInputValue(attendance.check_out_time),
+      work_hours: attendance.work_hours ?? '',
+      remarks: attendance.admin_remarks || ''
+    });
+  };
+
+  const cancelAttendanceEdit = () => {
+    setEditingAttendanceId(null);
+    setAttendanceEditForm({
+      check_in_time: '',
+      check_out_time: '',
+      work_hours: '',
+      remarks: ''
+    });
+  };
+
+  const handleAttendanceEditChange = (field, value) => {
+    setAttendanceEditForm((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const saveAttendanceEdit = async (attendanceId) => {
+    try {
+      await api.post('/api/admin/update-attendance', {
+        attendance_id: attendanceId,
+        check_in_time: attendanceEditForm.check_in_time || null,
+        check_out_time: attendanceEditForm.check_out_time || null,
+        work_hours: attendanceEditForm.work_hours === '' ? null : Number(attendanceEditForm.work_hours),
+        remarks: attendanceEditForm.remarks || null
+      });
+      cancelAttendanceEdit();
+      fetchPendingAttendance();
+      fetchAttendanceReport(attendancePage);
+      showToast('Attendance updated successfully', 'success');
+    } catch (e) {
+      setError(e?.response?.data?.detail || 'Failed to update attendance');
+      showToast('Failed to update attendance', 'error');
     }
   };
 
@@ -1360,30 +1421,102 @@ const AdminDashboard = () => {
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">Shift</th>
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">System</th>
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">Admin</th>
+                    <th className="p-2 sm:p-4 text-left whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={8} className="p-6 text-center text-gray-500">Loading attendance records...</td>
+                      <td colSpan={9} className="p-6 text-center text-gray-500">Loading attendance records...</td>
                     </tr>
                   )}
                   {!loading && attendanceReport.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="p-6 text-center text-gray-500">No attendance records found for selected filters.</td>
+                      <td colSpan={9} className="p-6 text-center text-gray-500">No attendance records found for selected filters.</td>
                     </tr>
                   )}
                   {!loading && attendanceReport.map(att => (
-                    <tr key={att.id} className="border-t hover:bg-gray-50">
-                      <td className="p-2 sm:p-4">{att.employee_id}</td>
-                      <td className="p-2 sm:p-4">{att.name}</td>
-                      <td className="p-2 sm:p-4 text-xs sm:text-sm">{att.check_in_time ? new Date(att.check_in_time).toLocaleString() : 'N/A'}</td>
-                      <td className="p-2 sm:p-4 text-xs sm:text-sm">{att.check_out_time ? new Date(att.check_out_time).toLocaleString() : 'Not checked out'}</td>
-                      <td className="p-2 sm:p-4">{att.work_hours ?? 'N/A'}</td>
-                      <td className="p-2 sm:p-4">{att.shift || 'N/A'}</td>
-                      <td className="p-2 sm:p-4">{att.system_status || 'N/A'}</td>
-                      <td className="p-2 sm:p-4">{att.admin_status || 'pending'}</td>
-                    </tr>
+                    <Fragment key={att.id}>
+                      <tr className="border-t hover:bg-gray-50">
+                        <td className="p-2 sm:p-4">{att.employee_id}</td>
+                        <td className="p-2 sm:p-4">{att.name}</td>
+                        <td className="p-2 sm:p-4 text-xs sm:text-sm">{att.check_in_time ? new Date(att.check_in_time).toLocaleString() : 'N/A'}</td>
+                        <td className="p-2 sm:p-4 text-xs sm:text-sm">{att.check_out_time ? new Date(att.check_out_time).toLocaleString() : 'Not checked out'}</td>
+                        <td className="p-2 sm:p-4">{att.work_hours ?? 'N/A'}</td>
+                        <td className="p-2 sm:p-4">{att.shift || 'N/A'}</td>
+                        <td className="p-2 sm:p-4">{att.system_status || 'N/A'}</td>
+                        <td className="p-2 sm:p-4">{att.admin_status || 'pending'}</td>
+                        <td className="p-2 sm:p-4">
+                          <button
+                            onClick={() => startAttendanceEdit(att)}
+                            className="rounded bg-blue-500 px-2 sm:px-3 py-1 text-xs sm:text-sm text-white transition-colors hover:bg-blue-600"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                      {editingAttendanceId === att.id && (
+                        <tr className="border-t bg-blue-50/50">
+                          <td colSpan={9} className="p-3 sm:p-4">
+                            <div className="grid gap-3 md:grid-cols-4">
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Check-in</span>
+                                <input
+                                  type="datetime-local"
+                                  value={attendanceEditForm.check_in_time}
+                                  onChange={(e) => handleAttendanceEditChange('check_in_time', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                />
+                              </label>
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Check-out</span>
+                                <input
+                                  type="datetime-local"
+                                  value={attendanceEditForm.check_out_time}
+                                  onChange={(e) => handleAttendanceEditChange('check_out_time', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                />
+                              </label>
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Hours</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={attendanceEditForm.work_hours}
+                                  onChange={(e) => handleAttendanceEditChange('work_hours', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                />
+                              </label>
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Remarks</span>
+                                <input
+                                  type="text"
+                                  value={attendanceEditForm.remarks}
+                                  onChange={(e) => handleAttendanceEditChange('remarks', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                  placeholder="Optional admin note"
+                                />
+                              </label>
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                onClick={() => saveAttendanceEdit(att.id)}
+                                className="rounded bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={cancelAttendanceEdit}
+                                className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-white"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -1419,6 +1552,7 @@ const AdminDashboard = () => {
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">Name</th>
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">Check-in</th>
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">Check-out</th>
+                    <th className="p-2 sm:p-4 text-left whitespace-nowrap">Hours</th>
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">Status</th>
                     <th className="p-2 sm:p-4 text-left whitespace-nowrap">Action</th>
                   </tr>
@@ -1426,33 +1560,103 @@ const AdminDashboard = () => {
                 <tbody>
                   {!loading && pendingAttendance.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="p-6 text-center text-gray-500">No pending attendance approvals.</td>
+                      <td colSpan={7} className="p-6 text-center text-gray-500">No pending attendance approvals.</td>
                     </tr>
                   )}
                   {pendingAttendance.map(att => (
-                    <tr key={att.id} className="border-t hover:bg-gray-50">
-                      <td className="p-2 sm:p-4">{att.employee_id}</td>
-                      <td className="p-2 sm:p-4">{att.name}</td>
-                      <td className="p-2 sm:p-4 text-xs sm:text-sm">{new Date(att.check_in_time).toLocaleString()}</td>
-                      <td className="p-2 sm:p-4 text-xs sm:text-sm">{att.check_out_time ? new Date(att.check_out_time).toLocaleString() : 'Not checked out'}</td>
-                      <td className="p-2 sm:p-4"><span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">{att.system_status}</span></td>
-                      <td className="p-2 sm:p-4">
-                        <div className="flex gap-1 flex-wrap">
-                          <button
-                            onClick={() => handleAttendanceAction(att.id, 'approved')}
-                            className="bg-green-500 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-green-600 transition-colors whitespace-nowrap"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleAttendanceAction(att.id, 'rejected')}
-                            className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-600 transition-colors whitespace-nowrap"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                    <Fragment key={att.id}>
+                      <tr className="border-t hover:bg-gray-50">
+                        <td className="p-2 sm:p-4">{att.employee_id}</td>
+                        <td className="p-2 sm:p-4">{att.name}</td>
+                        <td className="p-2 sm:p-4 text-xs sm:text-sm">{new Date(att.check_in_time).toLocaleString()}</td>
+                        <td className="p-2 sm:p-4 text-xs sm:text-sm">{att.check_out_time ? new Date(att.check_out_time).toLocaleString() : 'Not checked out'}</td>
+                        <td className="p-2 sm:p-4">{att.work_hours ?? 'N/A'}</td>
+                        <td className="p-2 sm:p-4"><span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">{att.system_status}</span></td>
+                        <td className="p-2 sm:p-4">
+                          <div className="flex gap-1 flex-wrap">
+                            <button
+                              onClick={() => startAttendanceEdit(att)}
+                              className="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-blue-600 transition-colors whitespace-nowrap"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleAttendanceAction(att.id, 'approved')}
+                              className="bg-green-500 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-green-600 transition-colors whitespace-nowrap"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleAttendanceAction(att.id, 'rejected')}
+                              className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-600 transition-colors whitespace-nowrap"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {editingAttendanceId === att.id && (
+                        <tr className="border-t bg-blue-50/50">
+                          <td colSpan={7} className="p-3 sm:p-4">
+                            <div className="grid gap-3 md:grid-cols-4">
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Check-in</span>
+                                <input
+                                  type="datetime-local"
+                                  value={attendanceEditForm.check_in_time}
+                                  onChange={(e) => handleAttendanceEditChange('check_in_time', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                />
+                              </label>
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Check-out</span>
+                                <input
+                                  type="datetime-local"
+                                  value={attendanceEditForm.check_out_time}
+                                  onChange={(e) => handleAttendanceEditChange('check_out_time', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                />
+                              </label>
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Hours</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={attendanceEditForm.work_hours}
+                                  onChange={(e) => handleAttendanceEditChange('work_hours', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                />
+                              </label>
+                              <label className="text-sm text-slate-700">
+                                <span className="mb-1 block font-medium">Remarks</span>
+                                <input
+                                  type="text"
+                                  value={attendanceEditForm.remarks}
+                                  onChange={(e) => handleAttendanceEditChange('remarks', e.target.value)}
+                                  className="w-full rounded border border-slate-300 px-3 py-2"
+                                  placeholder="Optional admin note"
+                                />
+                              </label>
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                onClick={() => saveAttendanceEdit(att.id)}
+                                className="rounded bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={cancelAttendanceEdit}
+                                className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-white"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
