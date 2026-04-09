@@ -323,6 +323,12 @@ const AdminDashboard = () => {
     today_attendance: 0,
     total_records: 0
   });
+  const [reportOverview, setReportOverview] = useState({
+    totalEmployees: 0,
+    presentToday: 0,
+    lateToday: 0,
+    pendingApprovals: 0
+  });
   const [editingAttendanceId, setEditingAttendanceId] = useState(null);
   const [attendanceEditForm, setAttendanceEditForm] = useState({
     check_in_time: '',
@@ -366,6 +372,8 @@ const AdminDashboard = () => {
     if (activeTab === 'reports') {
       fetchAttendanceReport(1);
       fetchEmployees();
+      fetchPendingAttendance();
+      fetchReportOverview();
     }
     if (activeTab === 'dashboard') {
       fetchTodayAttendance();
@@ -519,6 +527,44 @@ const AdminDashboard = () => {
     } catch (e) {
       setError(e?.response?.data?.detail || 'Failed to update employee');
       showToast('Failed to update employee', 'error');
+    }
+  };
+
+  const fetchReportOverview = async () => {
+    try {
+      const today = toLocalDateInputValue();
+      const [employeesRes, pendingRes, todayRes] = await Promise.all([
+        api.get('/api/admin/employees'),
+        api.get('/api/admin/pending-attendance'),
+        api.get('/api/admin/attendance-report', {
+          params: {
+            start_date: today,
+            end_date: today,
+            page: 1,
+            page_size: 500
+          }
+        })
+      ]);
+
+      const todayRecords = todayRes.data.attendance_data || [];
+      const lateToday = todayRecords.filter((record) => {
+        if (!record.check_in_time || record.admin_status !== 'approved') return false;
+        const checkInTime = new Date(record.check_in_time);
+        const shiftStart = record.shift === 'A' ? 9 : record.shift === 'B' ? 14 : record.shift === 'C' ? 22 : 9;
+        const lateMinutes = Math.floor(
+          (checkInTime.getTime() - new Date(checkInTime).setHours(shiftStart, 0, 0, 0)) / (1000 * 60)
+        );
+        return lateMinutes > 15;
+      }).length;
+
+      setReportOverview({
+        totalEmployees: (employeesRes.data.employees || []).length,
+        presentToday: todayRes.data.summary?.today_attendance || 0,
+        lateToday,
+        pendingApprovals: (pendingRes.data.pending_attendance || []).length
+      });
+    } catch {
+      setError('Failed to fetch report overview');
     }
   };
 
@@ -1271,22 +1317,28 @@ const AdminDashboard = () => {
         )}
         {/* STATS */}
         {activeTab === 'reports' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
               <p className="text-blue-100 text-sm">Total Employees</p>
-              <p className="text-4xl font-bold">{stats.totalEmployees}</p>
+              <p className="text-4xl font-bold">{reportOverview.totalEmployees}</p>
               <Users className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
 
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
-              <p className="text-green-100 text-sm">Today&apos;s Attendance</p>
-              <p className="text-4xl font-bold">{stats.todayAttendance}</p>
+              <p className="text-green-100 text-sm">Present Today</p>
+              <p className="text-4xl font-bold">{reportOverview.presentToday}</p>
               <Calendar className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
 
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
+              <p className="text-orange-100 text-sm">Late Today</p>
+              <p className="text-4xl font-bold">{reportOverview.lateToday}</p>
+              <AlertCircle className="opacity-40 absolute right-6 top-6" size={40} />
+            </div>
+
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
-              <p className="text-purple-100 text-sm">Total Records</p>
-              <p className="text-4xl font-bold">{stats.totalRecords}</p>
+              <p className="text-purple-100 text-sm">Pending Approvals</p>
+              <p className="text-4xl font-bold">{reportOverview.pendingApprovals}</p>
               <Clock className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
           </div>
