@@ -318,6 +318,11 @@ const AdminDashboard = () => {
   const [attendancePage, setAttendancePage] = useState(1);
   const [attendancePageSize, setAttendancePageSize] = useState(200);
   const [attendanceTotalRecords, setAttendanceTotalRecords] = useState(0);
+  const [attendanceSummary, setAttendanceSummary] = useState({
+    total_employees: 0,
+    today_attendance: 0,
+    total_records: 0
+  });
   const [editingAttendanceId, setEditingAttendanceId] = useState(null);
   const [attendanceEditForm, setAttendanceEditForm] = useState({
     check_in_time: '',
@@ -358,7 +363,10 @@ const AdminDashboard = () => {
       fetchPendingAttendance();
     }
     if (activeTab === 'employees') fetchEmployees();
-    if (activeTab === 'reports') fetchAttendanceReport(1);
+    if (activeTab === 'reports') {
+      fetchAttendanceReport(1);
+      fetchEmployees();
+    }
     if (activeTab === 'dashboard') {
       fetchTodayAttendance();
       fetchPendingAttendance();
@@ -439,6 +447,11 @@ const AdminDashboard = () => {
       setAttendanceReport(res.data.attendance_data || []);
       setAttendanceTotalRecords(res.data.total_records || 0);
       setAttendancePage(res.data.page || page);
+      setAttendanceSummary(res.data.summary || {
+        total_employees: 0,
+        today_attendance: 0,
+        total_records: 0
+      });
     } catch {
       setError('Failed to fetch attendance report');
     } finally {
@@ -457,6 +470,11 @@ const AdminDashboard = () => {
       });
       setAttendanceReport(res.data.attendance_data || []);
       setAttendanceTotalRecords(res.data.total_records || 0);
+      setAttendanceSummary(res.data.summary || {
+        total_employees: 0,
+        today_attendance: 0,
+        total_records: 0
+      });
     } catch {
       setError('Failed to fetch today attendance');
     } finally {
@@ -502,6 +520,22 @@ const AdminDashboard = () => {
       setError(e?.response?.data?.detail || 'Failed to update employee');
       showToast('Failed to update employee', 'error');
     }
+  };
+
+  const openEmployeeReport = (employee) => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const nextFilters = {
+      ...filters,
+      employee_id: employee.employee_id,
+      start_date: toLocalDateInputValue(monthStart),
+      end_date: toLocalDateInputValue(today)
+    };
+
+    setActiveTab('reports');
+    setAttendancePage(1);
+    setFilters(nextFilters);
+    fetchAttendanceReport(1, { filters: nextFilters });
   };
 
   const deleteEmployee = async (employee) => {
@@ -796,13 +830,29 @@ const AdminDashboard = () => {
   };
 
   const stats = {
-    totalEmployees: new Set(attendanceReport.map(r => r.employee_id)).size,
-    todayAttendance: attendanceReport.filter(r =>
-      r.check_in_time &&
-      new Date(r.check_in_time).toDateString() === new Date().toDateString()
-    ).length,
-    totalRecords: attendanceReport.length
+    totalEmployees: attendanceSummary.total_employees || 0,
+    todayAttendance: attendanceSummary.today_attendance || 0,
+    totalRecords: attendanceSummary.total_records || 0
   };
+
+  const selectedEmployeeDetails = filters.employee_id
+    ? employees.find((employee) => employee.employee_id === filters.employee_id) || null
+    : null;
+
+  const individualReportStats = filters.employee_id ? attendanceReport.reduce((acc, record) => {
+    acc.totalHours += Number(record.work_hours || 0);
+    if (record.check_in_time) acc.presentDays += 1;
+    if (record.admin_status === 'approved') acc.approvedDays += 1;
+    if (record.admin_status === 'rejected') acc.rejectedDays += 1;
+    if (record.admin_status === 'pending') acc.pendingDays += 1;
+    return acc;
+  }, {
+    totalHours: 0,
+    presentDays: 0,
+    approvedDays: 0,
+    rejectedDays: 0,
+    pendingDays: 0
+  }) : null;
 
   // Helper functions for charts and alerts
   const getAttendanceTrendData = () => {
@@ -1779,6 +1829,12 @@ const AdminDashboard = () => {
                             {deletingEmployeeId === emp.id ? 'Deleting...' : 'Delete'}
                           </button>
                           <button
+                            onClick={() => openEmployeeReport(emp)}
+                            className="bg-emerald-600 text-white px-3 py-1 rounded text-sm"
+                          >
+                            View Report
+                          </button>
+                          <button
                             onClick={() => setResetPasswordEmployee(emp)}
                             className="bg-red-500 text-white px-3 py-1 rounded text-sm"
                           >
@@ -1867,10 +1923,24 @@ const AdminDashboard = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
+                <select
+                  className="border p-2 rounded text-sm"
+                  value={filters.employee_id}
+                  onChange={(e) => setFilters({ ...filters, employee_id: e.target.value })}
+                >
+                  <option value="">All Employees</option>
+                  {employees.map((employee) => (
+                    <option key={employee.id} value={employee.employee_id}>
+                      {employee.employee_id} - {employee.name}
+                    </option>
+                  ))}
+                </select>
                 <input className="border p-2 rounded text-sm" placeholder="Employee ID"
+                  value={filters.employee_id}
                   onChange={e => setFilters({ ...filters, employee_id: e.target.value })} />
                 <select className="border p-2 rounded text-sm"
+                  value={filters.shift}
                   onChange={e => setFilters({ ...filters, shift: e.target.value })}>
                   <option value="">All Shifts</option>
                   <option value="A">A</option>
@@ -1889,14 +1959,116 @@ const AdminDashboard = () => {
                   <option value="22:00-06:30">22:00-06:30</option>
                 </select>
                 <input type="date" className="border p-2 rounded text-sm"
+                  value={filters.start_date}
                   onChange={e => setFilters({ ...filters, start_date: e.target.value })} />
                 <input type="date" className="border p-2 rounded text-sm"
+                  value={filters.end_date}
                   onChange={e => setFilters({ ...filters, end_date: e.target.value })} />
                 <button onClick={fetchAttendanceReport} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium col-span-1 xs:col-span-2 sm:col-span-1 whitespace-nowrap">
                   Filter
                 </button>
+                <button
+                  onClick={() => {
+                    const nextFilters = {
+                      employee_id: '',
+                      shift: '',
+                      start_date: toLocalDateInputValue(),
+                      end_date: toLocalDateInputValue()
+                    };
+                    setFilters(nextFilters);
+                    fetchAttendanceReport(1, { filters: nextFilters });
+                  }}
+                  className="bg-slate-200 text-slate-700 px-3 py-2 rounded text-sm font-medium whitespace-nowrap"
+                >
+                  Reset
+                </button>
               </div>
             </SurfaceCard>
+
+            {filters.employee_id && (
+              <>
+                <SurfaceCard className="p-5 mb-6">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Individual Report</p>
+                      <h3 className="text-2xl font-semibold text-slate-900">
+                        {selectedEmployeeDetails?.name || 'Selected Employee'}
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        {filters.employee_id}
+                        {selectedEmployeeDetails?.email ? ` • ${selectedEmployeeDetails.email}` : ''}
+                      </p>
+                    </div>
+                    <div className="text-sm text-slate-500">
+                      Range: {filters.start_date || 'Any date'} to {filters.end_date || 'Any date'}
+                    </div>
+                  </div>
+                </SurfaceCard>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <SurfaceCard className="p-4">
+                    <p className="text-sm text-slate-500">Present Days</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900">{individualReportStats?.presentDays || 0}</p>
+                  </SurfaceCard>
+                  <SurfaceCard className="p-4">
+                    <p className="text-sm text-slate-500">Approved Days</p>
+                    <p className="mt-2 text-3xl font-bold text-emerald-600">{individualReportStats?.approvedDays || 0}</p>
+                  </SurfaceCard>
+                  <SurfaceCard className="p-4">
+                    <p className="text-sm text-slate-500">Pending or Rejected</p>
+                    <p className="mt-2 text-3xl font-bold text-amber-600">
+                      {(individualReportStats?.pendingDays || 0) + (individualReportStats?.rejectedDays || 0)}
+                    </p>
+                  </SurfaceCard>
+                  <SurfaceCard className="p-4">
+                    <p className="text-sm text-slate-500">Worked Hours</p>
+                    <p className="mt-2 text-3xl font-bold text-cyan-700">
+                      {(individualReportStats?.totalHours || 0).toFixed(2)}
+                    </p>
+                  </SurfaceCard>
+                </div>
+
+                <SurfaceCard className="overflow-hidden mb-6">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-max text-sm sm:text-base">
+                      <thead className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white">
+                        <tr>
+                          <th className="p-3 text-left whitespace-nowrap">Date</th>
+                          <th className="p-3 text-left whitespace-nowrap">Check-in</th>
+                          <th className="p-3 text-left whitespace-nowrap">Check-out</th>
+                          <th className="p-3 text-left whitespace-nowrap">Hours</th>
+                          <th className="p-3 text-left whitespace-nowrap">Shift</th>
+                          <th className="p-3 text-left whitespace-nowrap">System</th>
+                          <th className="p-3 text-left whitespace-nowrap">Admin</th>
+                          <th className="p-3 text-left whitespace-nowrap">Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attendanceReport.length === 0 && (
+                          <tr>
+                            <td colSpan={8} className="p-6 text-center text-slate-500">
+                              No records found for this employee in the selected date range.
+                            </td>
+                          </tr>
+                        )}
+                        {attendanceReport.map((record) => (
+                          <tr key={record.id} className="border-t border-slate-100 hover:bg-slate-50">
+                            <td className="p-3">{record.check_in_time ? new Date(record.check_in_time).toLocaleDateString() : 'N/A'}</td>
+                            <td className="p-3">{record.check_in_time ? new Date(record.check_in_time).toLocaleString() : 'N/A'}</td>
+                            <td className="p-3">{record.check_out_time ? new Date(record.check_out_time).toLocaleString() : 'Not checked out'}</td>
+                            <td className="p-3">{record.work_hours ?? 'N/A'}</td>
+                            <td className="p-3">{record.shift || 'N/A'}</td>
+                            <td className="p-3">{record.system_status || 'N/A'}</td>
+                            <td className="p-3">{record.admin_status || 'pending'}</td>
+                            <td className="p-3">{record.admin_remarks || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SurfaceCard>
+              </>
+            )}
 
             {/* CHARTS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
