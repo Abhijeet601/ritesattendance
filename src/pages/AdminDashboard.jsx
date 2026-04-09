@@ -436,6 +436,7 @@ const AdminDashboard = () => {
   const fetchAttendanceReport = async (page = attendancePage, overrides = {}) => {
     setLoading(true);
     try {
+      const resolvedPage = Number.isInteger(page) && page > 0 ? page : attendancePage;
       const params = {};
       const effectiveFilters = overrides.filters ? { ...filters, ...overrides.filters } : filters;
       const effectivePageSize = overrides.pageSize ?? attendancePageSize;
@@ -446,22 +447,32 @@ const AdminDashboard = () => {
       if (normalizedFilters.end_date && !normalizedFilters.start_date) {
         normalizedFilters.start_date = normalizedFilters.end_date;
       }
+      if (
+        normalizedFilters.start_date &&
+        normalizedFilters.end_date &&
+        normalizedFilters.end_date < normalizedFilters.start_date
+      ) {
+        setError('End date cannot be before start date');
+        setLoading(false);
+        return;
+      }
 
       Object.entries(normalizedFilters).forEach(([k, v]) => v && (params[k] = v));
-      params.page = page;
+      params.page = resolvedPage;
       params.page_size = effectivePageSize;
 
       const res = await api.get('/api/admin/attendance-report', { params });
       setAttendanceReport(res.data.attendance_data || []);
       setAttendanceTotalRecords(res.data.total_records || 0);
-      setAttendancePage(res.data.page || page);
+      setAttendancePage(res.data.page || resolvedPage);
       setAttendanceSummary(res.data.summary || {
         total_employees: 0,
         today_attendance: 0,
         total_records: 0
       });
-    } catch {
-      setError('Failed to fetch attendance report');
+      setError('');
+    } catch (e) {
+      setError(e?.response?.data?.detail || 'Failed to fetch attendance report');
     } finally {
       setLoading(false);
     }
@@ -579,6 +590,12 @@ const AdminDashboard = () => {
     };
 
     setActiveTab('reports');
+    setAttendancePage(1);
+    setFilters(nextFilters);
+    fetchAttendanceReport(1, { filters: nextFilters });
+  };
+
+  const applyReportFilters = (nextFilters) => {
     setAttendancePage(1);
     setFilters(nextFilters);
     fetchAttendanceReport(1, { filters: nextFilters });
@@ -1979,7 +1996,10 @@ const AdminDashboard = () => {
                 <select
                   className="border p-2 rounded text-sm"
                   value={filters.employee_id}
-                  onChange={(e) => setFilters({ ...filters, employee_id: e.target.value })}
+                  onChange={(e) => {
+                    const nextFilters = { ...filters, employee_id: e.target.value };
+                    applyReportFilters(nextFilters);
+                  }}
                 >
                   <option value="">All Employees</option>
                   {employees.map((employee) => (
@@ -2016,7 +2036,7 @@ const AdminDashboard = () => {
                 <input type="date" className="border p-2 rounded text-sm"
                   value={filters.end_date}
                   onChange={e => setFilters({ ...filters, end_date: e.target.value })} />
-                <button onClick={fetchAttendanceReport} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium col-span-1 xs:col-span-2 sm:col-span-1 whitespace-nowrap">
+                <button onClick={() => fetchAttendanceReport(1)} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium col-span-1 xs:col-span-2 sm:col-span-1 whitespace-nowrap">
                   Filter
                 </button>
                 <button
@@ -2027,8 +2047,7 @@ const AdminDashboard = () => {
                       start_date: toLocalDateInputValue(),
                       end_date: toLocalDateInputValue()
                     };
-                    setFilters(nextFilters);
-                    fetchAttendanceReport(1, { filters: nextFilters });
+                    applyReportFilters(nextFilters);
                   }}
                   className="bg-slate-200 text-slate-700 px-3 py-2 rounded text-sm font-medium whitespace-nowrap"
                 >
