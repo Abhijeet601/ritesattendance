@@ -1,8 +1,14 @@
 /* eslint-disable react/prop-types */
 import { Fragment, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
+  Activity,
+  ArrowRight,
+  BadgeCheck,
+  BellRing,
+  BriefcaseBusiness,
+  ClipboardList,
   Download,
   Users,
   Calendar,
@@ -13,12 +19,15 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
-  Menu,
-  X,
+  Layers3,
   MapPin,
   Search,
   ChevronDown,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck,
+  Sparkles,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
@@ -269,12 +278,43 @@ const TAB_META = {
   }
 };
 
+const STAT_CARD_STYLES = {
+  blue: {
+    accent: 'from-sky-500 via-blue-600 to-cyan-600',
+    glow: 'shadow-[0_22px_45px_rgba(14,116,214,0.22)]',
+    ring: 'border-sky-100/80',
+    muted: 'text-sky-100/90'
+  },
+  green: {
+    accent: 'from-emerald-500 via-teal-600 to-green-600',
+    glow: 'shadow-[0_22px_45px_rgba(5,150,105,0.24)]',
+    ring: 'border-emerald-100/80',
+    muted: 'text-emerald-100/90'
+  },
+  orange: {
+    accent: 'from-amber-500 via-orange-500 to-orange-600',
+    glow: 'shadow-[0_22px_45px_rgba(249,115,22,0.22)]',
+    ring: 'border-orange-100/80',
+    muted: 'text-orange-100/90'
+  },
+  red: {
+    accent: 'from-rose-500 via-red-600 to-red-700',
+    glow: 'shadow-[0_22px_45px_rgba(225,29,72,0.22)]',
+    ring: 'border-rose-100/80',
+    muted: 'text-rose-100/90'
+  }
+};
+
+const PIE_COLORS = ['#0f8bd8', '#11a57c', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6'];
+
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [pendingRegistrations, setPendingRegistrations] = useState([]);
   const [pendingAttendance, setPendingAttendance] = useState([]);
