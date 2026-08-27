@@ -15,6 +15,8 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [todayStatus, setTodayStatus] = useState(null);
+  const [profilePhotoPath, setProfilePhotoPath] = useState('');
+  const [photoFailed, setPhotoFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total_attendance: 0,
@@ -71,6 +73,25 @@ const Dashboard = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchProfilePhoto = async () => {
+      try {
+        const res = await api.get('/api/user/profile');
+        setProfilePhotoPath(res.data?.user?.face_image_path || '');
+      } catch (err) {
+        console.error('Failed to fetch profile photo', err);
+      }
+    };
+
+    fetchProfilePhoto();
+  }, []);
+
+  const getStorageUrl = (path) => {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${api.defaults.baseURL}/${String(path).replace(/^\/+/, '')}`;
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -90,6 +111,20 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-blue-600 to-green-600 rounded-2xl shadow-lg p-8 mb-6 text-white"
         >
+          <div className="mb-4 flex items-center gap-4">
+            {profilePhotoPath && !photoFailed ? (
+              <img
+                src={getStorageUrl(profilePhotoPath)}
+                alt={`${user.name || user.employee_id} profile`}
+                onError={() => setPhotoFailed(true)}
+                className="h-20 w-20 rounded-full border-4 border-white/50 object-cover shadow-md"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white/50 bg-white/20 shadow-md">
+                <User size={38} />
+              </div>
+            )}
+            <div>
           <h1 className="text-4xl font-bold mb-2">
             Welcome, {user.name || user.employee_id}!
           </h1>
@@ -97,6 +132,8 @@ const Dashboard = () => {
             <User size={18} />
             {user.employee_id} • Shift: {user.shift_time || 'Not Set'}
           </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* TODAY'S STATUS */}

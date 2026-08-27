@@ -1792,6 +1792,7 @@ const AdminDashboard = () => {
               <thead className="bg-gradient-to-r from-blue-600 to-green-600 text-white sticky top-0">
                 <tr>
                   <th className="p-2 sm:p-4 text-left whitespace-nowrap">Emp ID</th>
+                  <th className="p-2 sm:p-4 text-left whitespace-nowrap">Photo</th>
                   <th className="p-2 sm:p-4 text-left whitespace-nowrap">Name</th>
                   <th className="p-2 sm:p-4 text-left whitespace-nowrap">Email</th>
                   <th className="p-2 sm:p-4 text-left whitespace-nowrap">Mobile</th>
@@ -1803,6 +1804,17 @@ const AdminDashboard = () => {
                 {employees.map(emp => (
                   <tr key={emp.id} className="border-t hover:bg-gray-50">
                     <td className="p-2 sm:p-4 text-xs sm:text-sm">{emp.employee_id}</td>
+                    <td className="p-2 sm:p-4">
+                      {emp.face_image_path ? (
+                        <img
+                          src={getStorageUrl(emp.face_image_path)}
+                          alt={`${emp.name} profile`}
+                          className="h-12 w-12 rounded-full border border-gray-200 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500">N/A</div>
+                      )}
+                    </td>
                     <td className="p-2 sm:p-4">
                       {editingEmployee === emp.id ? (
                         <input
