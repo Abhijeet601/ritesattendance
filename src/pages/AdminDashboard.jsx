@@ -1107,12 +1107,12 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className="h-screen overflow-hidden bg-[linear-gradient(180deg,#edf7ff_0%,#f7fafc_32%,#f2f8f7_100%)]">
+    <div className="h-screen h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,#edf7ff_0%,#f7fafc_32%,#f2f8f7_100%)]">
       <Navbar onToggleSidebar={handleSidebarToggle} onAdminAction={handleAdminAction} />
 
-      <div className="flex h-[calc(100vh-72px)]">
+      <div className="flex h-[calc(100vh-72px)] h-[calc(100dvh-72px)]">
         {/* Desktop Sidebar */}
-        <div className={`hidden md:block fixed left-0 top-0 z-40 h-screen pt-[72px] transition-[width] duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className={`hidden md:block fixed left-0 top-0 z-40 h-screen h-[100dvh] pt-[72px] transition-[width] duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <Sidebar 
             active={activeTab}
             onChange={handleSidebarChange}
@@ -1128,7 +1128,7 @@ const AdminDashboard = () => {
               initial={{ x: -280 }}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
-              className="md:hidden fixed left-0 top-0 z-40 h-screen w-[280px] max-w-[calc(100vw-2rem)] pt-[72px]"
+              className="md:hidden fixed left-0 top-0 z-40 h-screen h-[100dvh] w-[min(280px,85vw)] pt-[72px]"
             >
               <Sidebar 
                 active={activeTab}
@@ -1175,15 +1175,15 @@ const AdminDashboard = () => {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div className="mb-8 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
                   <SurfaceCard className="p-6 sm:p-7">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-cyan-700">Today&apos;s operating summary</p>
                         <h2 className="mt-2 text-2xl font-bold text-slate-900">Welcome back, {user.name}</h2>
                         <p className="mt-2 max-w-xl text-sm text-slate-600">
                           Review workforce movement, clear pending items and export daily records from a single dashboard.
                         </p>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="grid min-w-0 grid-cols-2 gap-3 text-sm">
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                           <p className="text-slate-500">Pending registrations</p>
                           <p className="mt-1 text-xl font-semibold text-slate-900">{pendingRegistrations.length}</p>
@@ -1221,7 +1221,7 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Stat Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-6 mb-6 sm:mb-8">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 md:gap-6 xl:grid-cols-4 mb-6 sm:mb-8">
                   <StatCard 
                     icon={Users}
                     label="Total Employees"

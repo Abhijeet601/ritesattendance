@@ -7,11 +7,16 @@
 /* Custom styles */
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  max-width: 100%;
 }
 
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
   min-width: 320px;
+  min-height: 100dvh;
   font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
   background:
     radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 28%),
@@ -24,6 +29,9 @@ body {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 100%;
 }
 
 * {
