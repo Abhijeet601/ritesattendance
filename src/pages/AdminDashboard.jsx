@@ -1125,10 +1125,10 @@ const AdminDashboard = () => {
         <AnimatePresence>
           {sidebarOpen && (
             <motion.div
-              initial={{ x: -256 }}
+              initial={{ x: -280 }}
               animate={{ x: 0 }}
-              exit={{ x: -256 }}
-              className="md:hidden fixed left-0 top-[72px] z-40 h-[calc(100vh-72px)] w-64"
+              exit={{ x: -280 }}
+              className="md:hidden fixed left-0 top-0 z-40 h-screen w-[280px] max-w-[calc(100vw-2rem)] pt-[72px]"
             >
               <Sidebar 
                 active={activeTab}
@@ -1145,12 +1145,12 @@ const AdminDashboard = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden fixed inset-0 top-[72px] bg-black/50 z-30"
+            className="md:hidden fixed inset-0 bg-black/50 z-30"
           />
         )}
 
         {/* Main Content */}
-        <main className={`min-w-0 flex-1 overflow-x-hidden overflow-y-auto transition-[margin] duration-300 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
+        <main className={`min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain transition-[margin] duration-300 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -135,26 +135,27 @@ const Navbar = ({
 
   return (
     <nav className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-green-600 shadow-lg">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex justify-between items-center py-4">
-          <div className="flex items-center gap-4">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6">
+        <div className="flex items-center justify-between gap-2 py-3 sm:py-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button
-              onClick={handleHome}
-              className="text-white hover:bg-white/20 p-2 rounded-lg transition"
-              title="Home"
+              type="button"
+              onClick={onToggleSidebar || handleHome}
+              className="relative z-[60] inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
+              aria-label="Toggle sidebar"
             >
               <Menu size={20} />
             </button>
-            <Link to={homePath} className="flex items-center gap-3">
-              <img src="/rites-logo.jpeg" alt="RITES Logo" className="h-8 w-auto" />
-              <div className="flex flex-col leading-tight">
-                <span className="text-lg font-semibold text-white">SmartPresence</span>
-                <span className="text-xs text-white/90">Face verification / Geo-fencing / Attendance reports / Admin approvals</span>
+            <Link to={homePath} className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <img src="/rites-logo.jpeg" alt="RITES Logo" className="h-8 w-auto shrink-0" />
+              <div className="min-w-0 flex flex-col leading-tight">
+                <span className="truncate text-base font-semibold text-white sm:text-lg">SmartPresence</span>
+                <span className="hidden truncate text-xs text-white/90 lg:block">Face verification / Geo-fencing / Attendance reports / Admin approvals</span>
               </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 text-white sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 text-white sm:gap-4">
             <div className="hidden sm:flex items-center gap-2 text-sm bg-white/20 px-3 py-1 rounded-full">
               <UserCircle2 size={18} />
               <span>{user.employee_id}</span>
