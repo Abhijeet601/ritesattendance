@@ -6,7 +6,6 @@ import {
   ChevronRight,
   FileText,
   LayoutDashboard,
-  LogOut,
   Settings,
   ShieldCheck,
   Users
@@ -19,12 +18,11 @@ const Sidebar = ({ active, onChange, collapsed = false, onToggleCollapse }) => {
     { key: 'attendance', label: 'Attendance', icon: Calendar },
     { key: 'reports', label: 'Reports', icon: BarChart3 },
     { key: 'monthly-report', label: 'Monthly Reports', icon: FileText },
-    { key: 'settings', label: 'Settings', icon: Settings },
-    { key: 'logout', label: 'Logout', icon: LogOut }
+    { key: 'settings', label: 'Settings', icon: Settings }
   ];
 
   return (
-    <aside className="relative flex h-full flex-col overflow-hidden rounded-r-[32px] border-r border-white/70 bg-[linear-gradient(180deg,rgba(250,252,255,0.95)_0%,rgba(232,245,255,0.95)_42%,rgba(238,250,246,0.96)_100%)] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+    <aside className="relative flex h-full flex-col overflow-x-hidden overflow-y-auto overscroll-contain rounded-r-[32px] border-r border-white/70 bg-[linear-gradient(180deg,rgba(250,252,255,0.95)_0%,rgba(232,245,255,0.95)_42%,rgba(238,250,246,0.96)_100%)] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-16 top-12 h-32 w-32 rounded-full bg-cyan-300/20 blur-3xl" />
         <div className="absolute bottom-16 right-[-48px] h-40 w-40 rounded-full bg-emerald-300/20 blur-3xl" />
@@ -57,11 +55,10 @@ const Sidebar = ({ active, onChange, collapsed = false, onToggleCollapse }) => {
         )}
       </div>
 
-      <nav className="relative flex flex-1 flex-col gap-2">
+      <nav className="relative flex flex-col gap-2">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.key;
-          const isLogout = item.key === 'logout';
 
           return (
             <button
@@ -71,8 +68,6 @@ const Sidebar = ({ active, onChange, collapsed = false, onToggleCollapse }) => {
               className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-3 py-3 text-left text-sm font-medium transition-all duration-300 ${
                 isActive
                   ? 'border-cyan-400/70 bg-[linear-gradient(135deg,#0f8bd8_0%,#0f6bdb_48%,#11a57c_100%)] text-white shadow-[0_16px_35px_rgba(14,116,214,0.28)]'
-                  : isLogout
-                  ? 'border-rose-100 bg-white/80 text-rose-600 hover:border-rose-200 hover:bg-rose-50'
                   : 'border-transparent bg-white/65 text-slate-700 hover:-translate-y-0.5 hover:border-cyan-100 hover:bg-white/90 hover:shadow-md'
               }`}
             >
@@ -81,15 +76,13 @@ const Sidebar = ({ active, onChange, collapsed = false, onToggleCollapse }) => {
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition duration-300 ${
                   isActive
                     ? 'bg-white/15 text-white'
-                    : isLogout
-                    ? 'bg-rose-100 text-rose-600'
                     : 'bg-slate-100 text-slate-600 group-hover:scale-105 group-hover:bg-cyan-50 group-hover:text-cyan-700'
                 }`}
               >
                 <Icon size={18} />
               </span>
               {!collapsed && <span className="flex-1">{item.label}</span>}
-              {!collapsed && !isLogout && (
+              {!collapsed && (
                 <ChevronRight
                   size={15}
                   className={`transition duration-300 ${isActive ? 'translate-x-0 text-white/80' : 'text-slate-300 group-hover:translate-x-0.5 group-hover:text-cyan-500'}`}

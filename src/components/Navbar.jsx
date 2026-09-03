@@ -42,7 +42,7 @@ const Navbar = ({
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={onToggleSidebar || handleHome}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 text-slate-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+              className="relative z-[60] inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 text-slate-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
               aria-label="Toggle sidebar"
             >
               <Menu size={19} />
@@ -134,7 +134,7 @@ const Navbar = ({
   }
 
   return (
-    <nav className="bg-gradient-to-r from-blue-600 to-green-600 shadow-lg">
+    <nav className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-green-600 shadow-lg">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center gap-4">
@@ -154,11 +154,22 @@ const Navbar = ({
             </Link>
           </div>
 
-          <div className="flex items-center gap-4 text-white">
+          <div className="flex items-center gap-2 text-white sm:gap-4">
             <div className="hidden sm:flex items-center gap-2 text-sm bg-white/20 px-3 py-1 rounded-full">
               <UserCircle2 size={18} />
               <span>{user.employee_id}</span>
             </div>
+            {onAdminAction && (
+              <button
+                type="button"
+                onClick={() => onAdminAction('logout')}
+                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/15 px-3 py-2 text-sm font-medium transition hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/50 sm:px-4"
+                aria-label="Logout"
+              >
+                <LogOut size={17} />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

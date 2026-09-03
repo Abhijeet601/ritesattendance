@@ -25,9 +25,7 @@ import {
   ChevronDown,
   CheckCircle2,
   ShieldCheck,
-  Sparkles,
-  Menu,
-  X
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
@@ -313,7 +311,7 @@ const AdminDashboard = () => {
   const reduceMotion = useReducedMotion();
 
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [pendingRegistrations, setPendingRegistrations] = useState([]);
@@ -1032,12 +1030,22 @@ const AdminDashboard = () => {
   if (!user) return null;
 
   const handleSidebarChange = (key) => {
-    if (key === 'logout') {
+    setActiveTab(key);
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
+  const handleSidebarToggle = () => {
+    if (window.innerWidth < 768) {
+      setSidebarOpen((open) => !open);
+      return;
+    }
+    setSidebarCollapsed((collapsed) => !collapsed);
+  };
+
+  const handleAdminAction = (action) => {
+    if (action === 'logout') {
       logout();
       navigate('/admin-login');
-    } else {
-      setActiveTab(key);
-      if (window.innerWidth < 768) setSidebarOpen(false);
     }
   };
 
@@ -1099,15 +1107,17 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#edf7ff_0%,#f7fafc_32%,#f2f8f7_100%)]">
-      <Navbar />
+    <div className="h-screen overflow-hidden bg-[linear-gradient(180deg,#edf7ff_0%,#f7fafc_32%,#f2f8f7_100%)]">
+      <Navbar onToggleSidebar={handleSidebarToggle} onAdminAction={handleAdminAction} />
 
-      <div className="flex">
+      <div className="flex h-[calc(100vh-72px)]">
         {/* Desktop Sidebar */}
-        <div className="hidden md:block fixed left-0 top-[72px] w-64 h-[calc(100vh-72px)] z-40">
+        <div className={`hidden md:block fixed left-0 top-0 z-40 h-screen pt-[72px] transition-[width] duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <Sidebar 
             active={activeTab}
             onChange={handleSidebarChange}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={handleSidebarToggle}
           />
         </div>
 
@@ -1118,7 +1128,7 @@ const AdminDashboard = () => {
               initial={{ x: -256 }}
               animate={{ x: 0 }}
               exit={{ x: -256 }}
-              className="md:hidden fixed left-0 top-[72px] w-64 h-[calc(100vh-72px)] z-40"
+              className="md:hidden fixed left-0 top-[72px] z-40 h-[calc(100vh-72px)] w-64"
             >
               <Sidebar 
                 active={activeTab}
@@ -1140,23 +1150,12 @@ const AdminDashboard = () => {
         )}
 
         {/* Main Content */}
-        <div className={`flex-1 md:ml-64 transition-all duration-300 w-full`}>
+        <main className={`min-w-0 flex-1 overflow-x-hidden overflow-y-auto transition-[margin] duration-300 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="p-3 sm:p-4 md:p-6"
           >
-            {/* Mobile Sidebar Toggle */}
-            <div className="md:hidden mb-4 sm:mb-6 flex items-center justify-between">
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Admin</h1>
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 bg-blue-600 text-white rounded-lg shadow hover:shadow-md transition"
-              >
-                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            </div>
-
             <div className="mb-6">
               <SectionIntro
                 eyebrow={TAB_META[activeTab]?.eyebrow || 'Admin'}
@@ -2366,7 +2365,7 @@ const AdminDashboard = () => {
 
             {error && <motion.div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{error}</motion.div>}
           </motion.div>
-        </div>
+        </main>
       </div>
 
       {/* Password Reset Modal */}
