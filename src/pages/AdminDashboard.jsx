@@ -533,22 +533,22 @@ const AdminDashboard = () => {
       setAttendancePage(res.data.page || resolvedPage);
       setAttendanceSummary(summary);
 
-      // Keep report cards and the report table on the same selected dataset.
-      if (activeTab === 'reports') {
-        const lateToday = records.filter((record) => {
-          if (!record.check_in_time || record.admin_status !== 'approved') return false;
-          const checkInTime = new Date(record.check_in_time);
-          const shiftStart = record.shift === 'A' ? 9 : record.shift === 'B' ? 14 : record.shift === 'C' ? 22 : 9;
-          return (checkInTime.getTime() - new Date(checkInTime).setHours(shiftStart, 0, 0, 0)) / (1000 * 60) > 15;
-        }).length;
+      // Update report overview from summary so dashboard and reports remain consistent.
+      // For 'reports' tab we compute some values from the fetched records to keep details accurate,
+      // but also seed reportOverview from backend summary to avoid mismatches.
+      const computedLate = records.filter((record) => {
+        if (!record.check_in_time || record.admin_status !== 'approved') return false;
+        const checkInTime = new Date(record.check_in_time);
+        const shiftStart = record.shift === 'A' ? 9 : record.shift === 'B' ? 14 : record.shift === 'C' ? 22 : 9;
+        return (checkInTime.getTime() - new Date(checkInTime).setHours(shiftStart, 0, 0, 0)) / (1000 * 60) > 15;
+      }).length;
 
-        setReportOverview({
-          totalEmployees: summary.total_employees || 0,
-          presentToday: summary.approved_records ?? records.filter((record) => record.admin_status === 'approved').length,
-          lateToday: summary.late_records ?? lateToday,
-          pendingApprovals: summary.pending_records ?? records.filter((record) => record.admin_status === 'pending').length
-        });
-      }
+      setReportOverview({
+        totalEmployees: summary.total_employees || 0,
+        presentToday: summary.approved_records ?? records.filter((record) => record.admin_status === 'approved').length,
+        lateToday: summary.late_records ?? computedLate,
+        pendingApprovals: summary.pending_records ?? records.filter((record) => record.admin_status === 'pending').length
+      });
       setError('');
     } catch (e) {
       setError(e?.response?.data?.detail || 'Failed to fetch attendance report');
@@ -568,10 +568,23 @@ const AdminDashboard = () => {
       });
       setAttendanceReport(res.data.attendance_data || []);
       setAttendanceTotalRecords(res.data.total_records || 0);
-      setAttendanceSummary(res.data.summary || {
+      const summary = res.data.summary || {
         total_employees: 0,
         today_attendance: 0,
-        total_records: 0
+        total_records: 0,
+        approved_records: 0,
+        pending_records: 0,
+        late_records: 0
+      };
+
+      setAttendanceSummary(summary);
+
+      // Also update report overview from the backend summary to keep dashboard consistent
+      setReportOverview({
+        totalEmployees: summary.total_employees || 0,
+        presentToday: summary.approved_records || 0,
+        lateToday: summary.late_records || 0,
+        pendingApprovals: summary.pending_records || 0
       });
     } catch {
       setError('Failed to fetch today attendance');
@@ -584,7 +597,19 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       const res = await api.get('/api/admin/employees');
-      setEmployees(res.data.employees || []);
+      const employeesList = res.data.employees || [];
+      setEmployees(employeesList);
+
+      // Ensure dashboard/report total employees uses the employees endpoint as authoritative
+      setAttendanceSummary((prev) => ({
+        ...prev,
+        total_employees: employeesList.length || prev.total_employees
+      }));
+
+      setReportOverview((prev) => ({
+        ...prev,
+        totalEmployees: employeesList.length || prev.totalEmployees
+      }));
     } catch {
       setError('Failed to fetch employees');
     } finally {
