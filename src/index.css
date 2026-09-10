@@ -47,6 +47,90 @@ code {
   background: rgba(14, 165, 233, 0.18);
 }
 
+@keyframes sp-gradient-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes sp-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+
+@keyframes sp-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes sp-toast-in {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes sp-indicator-pulse {
+  0% { transform: scaleY(0.85); opacity: 0.9; }
+  50% { transform: scaleY(1.04); opacity: 1; }
+  100% { transform: scaleY(0.95); opacity: 0.95; }
+}
+
+@keyframes sp-hamburger-tilt {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(-6deg) scale(1.02); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.sp-premium-header {
+  background-image: linear-gradient(115deg, #075fc9 0%, #0879c9 42%, #0b9c8d 72%, #15965a 100%);
+  background-size: 180% 180%;
+  animation: sp-gradient-drift 14s ease-in-out infinite;
+}
+
+.sp-header-orb {
+  animation: sp-float 9s ease-in-out infinite;
+}
+
+.sp-surface {
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.sp-surface:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.28);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.10);
+}
+
+.sp-active-indicator {
+  transform-origin: center;
+  animation: sp-indicator-pulse 2.6s ease-in-out infinite;
+}
+
+.sp-hamburger {
+  will-change: transform;
+}
+
+.sp-hamburger-active {
+  animation: sp-hamburger-tilt 650ms ease-in-out both;
+}
+
+.sp-sidebar-item svg {
+  transform-origin: center;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.sp-sidebar-item:hover svg {
+  transform: translateX(6px) rotate(-3deg) scale(1.02);
+}
+
+.sp-skeleton {
+  background: linear-gradient(100deg, rgba(226, 232, 240, 0.58) 30%, rgba(255, 255, 255, 0.95) 50%, rgba(226, 232, 240, 0.58) 70%);
+  background-size: 200% 100%;
+  animation: sp-shimmer 1.6s linear infinite;
+}
+
+.sp-toast-enter {
+  animation: sp-toast-in 260ms ease-out both;
+}
+
 @layer components {
   .sp-input {
     @apply w-full rounded-2xl border border-slate-200/90 bg-white/85 px-4 py-3 text-sm text-slate-700 outline-none transition duration-200 placeholder:text-slate-400 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100/80;
@@ -84,6 +168,10 @@ code {
 
   .sp-scrollbar::-webkit-scrollbar-track {
     background: transparent;
+  }
+
+  .sp-sidebar-item {
+    @apply transition-all duration-200 hover:translate-x-0.5;
   }
 }
 

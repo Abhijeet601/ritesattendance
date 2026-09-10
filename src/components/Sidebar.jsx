@@ -22,7 +22,7 @@ const Sidebar = ({ active, onChange, collapsed = false, onToggleCollapse }) => {
   ];
 
   return (
-    <aside className="relative flex h-full flex-col overflow-x-hidden overflow-y-auto overscroll-contain rounded-r-[32px] border-r border-white/70 bg-[linear-gradient(180deg,rgba(250,252,255,0.95)_0%,rgba(232,245,255,0.95)_42%,rgba(238,250,246,0.96)_100%)] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+    <aside className="relative flex h-full min-h-0 flex-col touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] rounded-r-[32px] border-r border-white/70 bg-[linear-gradient(180deg,rgba(250,252,255,0.95)_0%,rgba(232,245,255,0.95)_42%,rgba(238,250,246,0.96)_100%)] p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-16 top-12 h-32 w-32 rounded-full bg-cyan-300/20 blur-3xl" />
         <div className="absolute bottom-16 right-[-48px] h-40 w-40 rounded-full bg-emerald-300/20 blur-3xl" />
@@ -65,21 +65,23 @@ const Sidebar = ({ active, onChange, collapsed = false, onToggleCollapse }) => {
               key={item.key}
               onClick={() => onChange(item.key)}
               title={collapsed ? item.label : undefined}
-              className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-3 py-3 text-left text-sm font-medium transition-all duration-300 ${
+              className={`sp-sidebar-item group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-3 py-3 text-left text-sm font-medium transition-all duration-300 ${
                 isActive
                   ? 'border-cyan-400/70 bg-[linear-gradient(135deg,#0f8bd8_0%,#0f6bdb_48%,#11a57c_100%)] text-white shadow-[0_16px_35px_rgba(14,116,214,0.28)]'
                   : 'border-transparent bg-white/65 text-slate-700 hover:-translate-y-0.5 hover:border-cyan-100 hover:bg-white/90 hover:shadow-md'
               }`}
             >
-              {isActive && <span className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-white/90" />}
-              <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition duration-300 ${
+              {isActive && (
+                <span className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-gradient-to-b from-cyan-300 to-emerald-400 shadow-[0_8px_18px_rgba(16,185,129,0.12)] sp-active-indicator" />
+              )}
+                <span
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition duration-300 will-change-transform ${
                   isActive
                     ? 'bg-white/15 text-white'
                     : 'bg-slate-100 text-slate-600 group-hover:scale-105 group-hover:bg-cyan-50 group-hover:text-cyan-700'
                 }`}
               >
-                <Icon size={18} />
+                <Icon size={18} className="transition-transform duration-300" />
               </span>
               {!collapsed && <span className="flex-1">{item.label}</span>}
               {!collapsed && (

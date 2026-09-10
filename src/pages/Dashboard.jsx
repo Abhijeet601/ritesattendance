@@ -137,6 +137,14 @@ const Dashboard = () => {
         </motion.div>
 
         {/* TODAY'S STATUS */}
+        {loading && (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg" aria-label="Loading dashboard data">
+            <div className="sp-skeleton h-5 w-32 rounded-full" />
+            <div className="mt-5 grid gap-4 md:grid-cols-4">
+              {[0, 1, 2, 3].map((item) => <div key={item} className="sp-skeleton h-24 rounded-xl" />)}
+            </div>
+          </div>
+        )}
         {!loading && todayStatus && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -215,7 +223,7 @@ const Dashboard = () => {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"
         >
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="sp-surface bg-white rounded-xl shadow-lg p-6 border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Days</p>
@@ -225,7 +233,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="sp-surface bg-white rounded-xl shadow-lg p-6 border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Present Days</p>
@@ -235,7 +243,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="sp-surface bg-white rounded-xl shadow-lg p-6 border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Absent Days</p>
@@ -245,7 +253,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="sp-surface bg-white rounded-xl shadow-lg p-6 border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Average Hours</p>
@@ -277,8 +285,7 @@ const Dashboard = () => {
 
             <Link
               to="/attendance"
-              className="inline-block bg-white text-blue-600 font-semibold
-                px-8 py-3 rounded-xl shadow hover:bg-blue-50 transition relative z-10"
+              className="inline-flex items-center justify-center rounded-xl bg-white px-8 py-3 font-semibold text-blue-600 shadow-lg transition duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-xl active:translate-y-0 active:scale-[0.98] relative z-10"
             >
               Go to Attendance
             </Link>
@@ -303,8 +310,7 @@ const Dashboard = () => {
 
             <Link
               to="/my-attendance"
-              className="inline-block bg-white text-green-600 font-semibold
-                px-8 py-3 rounded-xl shadow hover:bg-green-50 transition relative z-10"
+              className="inline-flex items-center justify-center rounded-xl bg-white px-8 py-3 font-semibold text-green-600 shadow-lg transition duration-200 hover:-translate-y-0.5 hover:bg-green-50 hover:shadow-xl active:translate-y-0 active:scale-[0.98] relative z-10"
             >
               View History
             </Link>

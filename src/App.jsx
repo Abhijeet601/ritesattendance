@@ -46,11 +46,22 @@ function PathNormalizer() {
   return null;
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <PathNormalizer />
+        <ScrollToTop />
         <div className="App flex flex-col min-h-screen">
           <div className="flex-grow">
             <Routes>

@@ -8,6 +8,7 @@ const Navbar = ({
   onToggleSidebar,
   onAdminAction,
   adminId,
+  sidebarOpen = false,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -134,20 +135,25 @@ const Navbar = ({
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-gradient-to-r from-blue-600 to-green-600 shadow-lg">
-      <div className="mx-auto max-w-7xl px-3 sm:px-6">
+    <nav className="sp-premium-header sticky top-0 z-50 overflow-hidden shadow-[0_14px_34px_rgba(8,96,171,0.24)]">
+      <span className="sp-header-orb pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-cyan-200/20 blur-3xl" />
+      <span className="pointer-events-none absolute -bottom-20 left-1/3 h-36 w-36 rounded-full bg-emerald-300/15 blur-3xl" />
+      <div className="relative z-10 mx-auto max-w-7xl px-3 sm:px-6">
         <div className="flex items-center justify-between gap-2 py-3 sm:py-4">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button
               type="button"
               onClick={onToggleSidebar || handleHome}
-              className="relative z-[60] inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
+              aria-expanded={sidebarOpen}
+              className={`relative z-[60] inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/60 active:translate-y-0 active:scale-95 sp-hamburger ${sidebarOpen ? 'sp-hamburger-active' : ''}`}
               aria-label="Toggle sidebar"
             >
               <Menu size={20} />
             </button>
             <Link to={homePath} className="flex min-w-0 items-center gap-2 sm:gap-3">
-              <img src="/rites-logo.jpeg" alt="RITES Logo" className="h-8 w-auto shrink-0" />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/90 p-1 shadow-lg shadow-blue-950/15">
+                <img src="/rites-logo.jpeg" alt="RITES Logo" className="h-7 w-auto" />
+              </span>
               <div className="min-w-0 flex flex-col leading-tight">
                 <span className="truncate text-base font-semibold text-white sm:text-lg">SmartPresence</span>
                 <span className="hidden truncate text-xs text-white/90 lg:block">Face verification / Geo-fencing / Attendance reports / Admin approvals</span>
@@ -164,7 +170,7 @@ const Navbar = ({
               <button
                 type="button"
                 onClick={() => onAdminAction('logout')}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/15 px-3 py-2 text-sm font-medium transition hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/50 sm:px-4"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/15 px-3 py-2 text-sm font-semibold shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/25 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/50 active:translate-y-0 active:scale-95 sm:px-4"
                 aria-label="Logout"
               >
                 <LogOut size={17} />

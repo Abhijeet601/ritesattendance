@@ -305,6 +305,28 @@ const STAT_CARD_STYLES = {
 
 const PIE_COLORS = ['#0f8bd8', '#11a57c', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6'];
 
+const AnimatedMetric = ({ value }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const target = Number(value) || 0;
+    const startTime = performance.now();
+    let frameId;
+
+    const updateValue = (now) => {
+      const progress = Math.min((now - startTime) / 520, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      setDisplayValue(Math.round(target * eased));
+      if (progress < 1) frameId = requestAnimationFrame(updateValue);
+    };
+
+    frameId = requestAnimationFrame(updateValue);
+    return () => cancelAnimationFrame(frameId);
+  }, [value]);
+
+  return displayValue.toLocaleString('en-IN');
+};
+
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -411,7 +433,6 @@ const AdminDashboard = () => {
       fetchAttendanceReport(1);
       fetchEmployees();
       fetchPendingAttendance();
-      fetchReportOverview();
     }
     if (activeTab === 'dashboard') {
       fetchTodayAttendance();
@@ -500,14 +521,34 @@ const AdminDashboard = () => {
       params.page_size = effectivePageSize;
 
       const res = await api.get('/api/admin/attendance-report', { params });
-      setAttendanceReport(res.data.attendance_data || []);
-      setAttendanceTotalRecords(res.data.total_records || 0);
-      setAttendancePage(res.data.page || resolvedPage);
-      setAttendanceSummary(res.data.summary || {
+      const records = res.data.attendance_data || [];
+      const summary = res.data.summary || {
         total_employees: 0,
         today_attendance: 0,
         total_records: 0
-      });
+      };
+
+      setAttendanceReport(records);
+      setAttendanceTotalRecords(res.data.total_records || 0);
+      setAttendancePage(res.data.page || resolvedPage);
+      setAttendanceSummary(summary);
+
+      // Keep report cards and the report table on the same selected dataset.
+      if (activeTab === 'reports') {
+        const lateToday = records.filter((record) => {
+          if (!record.check_in_time || record.admin_status !== 'approved') return false;
+          const checkInTime = new Date(record.check_in_time);
+          const shiftStart = record.shift === 'A' ? 9 : record.shift === 'B' ? 14 : record.shift === 'C' ? 22 : 9;
+          return (checkInTime.getTime() - new Date(checkInTime).setHours(shiftStart, 0, 0, 0)) / (1000 * 60) > 15;
+        }).length;
+
+        setReportOverview({
+          totalEmployees: summary.total_employees || 0,
+          presentToday: summary.approved_records ?? records.filter((record) => record.admin_status === 'approved').length,
+          lateToday: summary.late_records ?? lateToday,
+          pendingApprovals: summary.pending_records ?? records.filter((record) => record.admin_status === 'pending').length
+        });
+      }
       setError('');
     } catch (e) {
       setError(e?.response?.data?.detail || 'Failed to fetch attendance report');
@@ -576,44 +617,6 @@ const AdminDashboard = () => {
     } catch (e) {
       setError(e?.response?.data?.detail || 'Failed to update employee');
       showToast('Failed to update employee', 'error');
-    }
-  };
-
-  const fetchReportOverview = async () => {
-    try {
-      const today = toLocalDateInputValue();
-      const [employeesRes, pendingRes, todayRes] = await Promise.all([
-        api.get('/api/admin/employees'),
-        api.get('/api/admin/pending-attendance'),
-        api.get('/api/admin/attendance-report', {
-          params: {
-            start_date: today,
-            end_date: today,
-            page: 1,
-            page_size: 500
-          }
-        })
-      ]);
-
-      const todayRecords = todayRes.data.attendance_data || [];
-      const lateToday = todayRecords.filter((record) => {
-        if (!record.check_in_time || record.admin_status !== 'approved') return false;
-        const checkInTime = new Date(record.check_in_time);
-        const shiftStart = record.shift === 'A' ? 9 : record.shift === 'B' ? 14 : record.shift === 'C' ? 22 : 9;
-        const lateMinutes = Math.floor(
-          (checkInTime.getTime() - new Date(checkInTime).setHours(shiftStart, 0, 0, 0)) / (1000 * 60)
-        );
-        return lateMinutes > 15;
-      }).length;
-
-      setReportOverview({
-        totalEmployees: (employeesRes.data.employees || []).length,
-        presentToday: todayRes.data.summary?.today_attendance || 0,
-        lateToday,
-        pendingApprovals: (pendingRes.data.pending_attendance || []).length
-      });
-    } catch {
-      setError('Failed to fetch report overview');
     }
   };
 
@@ -1065,10 +1068,10 @@ const AdminDashboard = () => {
   // StatCard Component
   const StatCard = ({ icon: Icon, label, value, color, trend }) => (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
-      className={`bg-gradient-to-br ${color} rounded-2xl shadow-lg p-6 text-white relative overflow-hidden group cursor-pointer`}
+      whileHover={reduceMotion ? undefined : { y: -5 }}
+      className={`sp-surface bg-gradient-to-br ${color} rounded-2xl shadow-lg p-6 text-white relative overflow-hidden group cursor-pointer`}
     >
       <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition" />
       <div className="relative z-10">
@@ -1076,15 +1079,15 @@ const AdminDashboard = () => {
           <p className="text-sm font-medium opacity-90">{label}</p>
           <Icon className="opacity-50 group-hover:opacity-100 transition" size={24} />
         </div>
-        <p className="text-4xl font-bold">{value}</p>
+        <p className="text-4xl font-bold tabular-nums"><AnimatedMetric value={value} /></p>
         {trend && <p className="text-xs mt-2 opacity-75">{trend}</p>}
       </div>
     </motion.div>
   );
 
   const SectionIntro = ({ eyebrow, title, description, badge }) => (
-    <div className="relative overflow-hidden rounded-[28px] border border-cyan-100 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.18),_transparent_34%),linear-gradient(135deg,#ffffff_0%,#f3f9ff_55%,#eef8f7_100%)] p-6 sm:p-8 shadow-lg">
-      <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-cyan-200/30 blur-3xl" />
+    <div className="sp-surface relative overflow-hidden rounded-[28px] border border-cyan-100 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.18),_transparent_34%),linear-gradient(135deg,#ffffff_0%,#f3f9ff_55%,#eef8f7_100%)] p-6 sm:p-8 shadow-lg">
+      <div className="sp-header-orb absolute right-0 top-0 h-32 w-32 rounded-full bg-cyan-200/30 blur-3xl" />
       <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700">{eyebrow}</p>
@@ -1101,16 +1104,16 @@ const AdminDashboard = () => {
   );
 
   const SurfaceCard = ({ className = '', children }) => (
-    <div className={`rounded-3xl border border-slate-200/80 bg-white/90 shadow-lg shadow-slate-200/40 backdrop-blur ${className}`}>
+    <div className={`sp-surface rounded-3xl border border-slate-200/80 bg-white/90 shadow-lg shadow-slate-200/40 backdrop-blur ${className}`}>
       {children}
     </div>
   );
 
   return (
-    <div className="h-screen h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,#edf7ff_0%,#f7fafc_32%,#f2f8f7_100%)]">
-      <Navbar onToggleSidebar={handleSidebarToggle} onAdminAction={handleAdminAction} />
+    <div className="min-h-screen min-h-[100dvh] bg-[linear-gradient(180deg,#edf7ff_0%,#f7fafc_32%,#f2f8f7_100%)] md:h-screen md:h-[100dvh] md:overflow-hidden">
+      <Navbar onToggleSidebar={handleSidebarToggle} onAdminAction={handleAdminAction} sidebarOpen={sidebarOpen} />
 
-      <div className="flex h-[calc(100vh-72px)] h-[calc(100dvh-72px)]">
+      <div className="flex min-h-[calc(100vh-72px)] min-h-[calc(100dvh-72px)] md:h-[calc(100vh-72px)] md:h-[calc(100dvh-72px)]">
         {/* Desktop Sidebar */}
         <div className={`hidden md:block fixed left-0 top-0 z-40 h-screen h-[100dvh] pt-[72px] transition-[width] duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <Sidebar 
@@ -1150,7 +1153,7 @@ const AdminDashboard = () => {
         )}
 
         {/* Main Content */}
-        <main className={`min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain transition-[margin] duration-300 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
+        <main className={`min-w-0 flex-1 touch-pan-y overflow-x-hidden [-webkit-overflow-scrolling:touch] md:h-full md:min-h-0 md:overflow-y-auto md:overscroll-contain transition-[margin] duration-300 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'}`}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1223,31 +1226,29 @@ const AdminDashboard = () => {
                 {/* Stat Cards */}
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 md:gap-6 xl:grid-cols-4 mb-6 sm:mb-8">
                   <StatCard 
-                    icon={Users}
-                    label="Total Employees"
-                    value={employees.length}
-                    color="from-blue-500 to-blue-600"
-                  />
-                  <StatCard
-                    icon={CheckCircle}
-                    label="Present Today"
-                    value={attendanceReport.filter(r =>
-                      r.check_in_time && new Date(r.check_in_time).toDateString() === new Date().toDateString()
-                    ).length}
-                    color="from-green-500 to-green-600"
-                  />
-                  <StatCard
-                    icon={AlertCircle}
-                    label="Late Today"
-                    value={getLateTodayCount()}
-                    color="from-orange-500 to-orange-600"
-                  />
-                  <StatCard
-                    icon={XCircle}
-                    label="Pending Approvals"
-                    value={pendingAttendance.length}
-                    color="from-red-500 to-red-600"
-                  />
+                      icon={Users}
+                      label="Total Employees"
+                      value={stats.totalEmployees}
+                      color="from-blue-500 to-blue-600"
+                    />
+                    <StatCard
+                      icon={CheckCircle}
+                      label="Present Today"
+                      value={stats.todayAttendance}
+                      color="from-green-500 to-green-600"
+                    />
+                    <StatCard
+                      icon={AlertCircle}
+                      label="Late Today"
+                      value={reportOverview.lateToday || getLateTodayCount()}
+                      color="from-orange-500 to-orange-600"
+                    />
+                    <StatCard
+                      icon={XCircle}
+                      label="Pending Approvals"
+                      value={pendingAttendance.length}
+                      color="from-red-500 to-red-600"
+                    />
                 </div>
 
                 {/* Quick Actions */}
@@ -1375,25 +1376,25 @@ const AdminDashboard = () => {
         {activeTab === 'reports' && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg p-6 text-white">
-              <p className="text-blue-100 text-sm">Total Employees</p>
+              <p className="text-blue-100 text-sm">Employees in Report</p>
               <p className="text-4xl font-bold">{reportOverview.totalEmployees}</p>
               <Users className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
 
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
-              <p className="text-green-100 text-sm">Present Today</p>
+              <p className="text-green-100 text-sm">Approved Records</p>
               <p className="text-4xl font-bold">{reportOverview.presentToday}</p>
               <Calendar className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
 
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
-              <p className="text-orange-100 text-sm">Late Today</p>
+              <p className="text-orange-100 text-sm">Late Records</p>
               <p className="text-4xl font-bold">{reportOverview.lateToday}</p>
               <AlertCircle className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
 
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white">
-              <p className="text-purple-100 text-sm">Pending Approvals</p>
+              <p className="text-purple-100 text-sm">Pending Records</p>
               <p className="text-4xl font-bold">{reportOverview.pendingApprovals}</p>
               <Clock className="opacity-40 absolute right-6 top-6" size={40} />
             </div>
