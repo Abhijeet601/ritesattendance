@@ -1,3 +1,4 @@
+import os
 import mysql.connector
 from mysql.connector import Error
 
@@ -51,7 +52,7 @@ if __name__ == "__main__":
     # Database configuration
     HOST = "localhost"
     USER = "root"
-    PASSWORD = "Abhijeet@7654"
+    PASSWORD = os.environ.get("MYSQL_PASSWORD", "")
     DATABASE = "attendance_system"
     SQL_FILE_PATH = "Backend/database_schema.sql"
 

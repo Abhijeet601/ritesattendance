@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Clock, ListChecks, LogOut, User, TrendingUp, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
+import { ProtectedImage } from '../components/ProtectedImage';
 import Navbar from '../components/Navbar';
 
 const toLocalDateInputValue = (dateObj = new Date()) => {
@@ -86,12 +87,6 @@ const Dashboard = () => {
     fetchProfilePhoto();
   }, []);
 
-  const getStorageUrl = (path) => {
-    if (!path) return '';
-    if (/^https?:\/\//i.test(path)) return path;
-    return `${api.defaults.baseURL}/${String(path).replace(/^\/+/, '')}`;
-  };
-
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -113,10 +108,9 @@ const Dashboard = () => {
         >
           <div className="mb-4 flex items-center gap-4">
             {profilePhotoPath && !photoFailed ? (
-              <img
-                src={getStorageUrl(profilePhotoPath)}
+              <ProtectedImage
+                path={profilePhotoPath}
                 alt={`${user.name || user.employee_id} profile`}
-                onError={() => setPhotoFailed(true)}
                 className="h-20 w-20 rounded-full border-4 border-white/50 object-cover shadow-md"
               />
             ) : (

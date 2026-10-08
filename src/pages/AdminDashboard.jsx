@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
+import { ProtectedImage, downloadProtectedFile } from '../components/ProtectedImage';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import Toast from '../components/Toast';
@@ -340,6 +341,7 @@ const AdminDashboard = () => {
   const [pendingAttendance, setPendingAttendance] = useState([]);
   const [attendanceReport, setAttendanceReport] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [employeeTotal, setEmployeeTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -414,13 +416,6 @@ const AdminDashboard = () => {
     setTimeout(() => setToast({ message: '', type: 'info' }), 4000);
   };
 
-  const getStorageUrl = (path) => {
-    if (!path) return '';
-    if (/^https?:\/\//i.test(path)) return path;
-    const normalizedPath = String(path).replace(/^\/+/, '');
-    return `${api.defaults.baseURL}/${normalizedPath}`;
-  };
-
   // Fetch data based on active tab
   useEffect(() => {
     if (activeTab === 'registrations') fetchPendingRegistrations();
@@ -438,6 +433,7 @@ const AdminDashboard = () => {
       fetchTodayAttendance();
       fetchPendingAttendance();
       fetchEmployees();
+      fetchDashboardSummary();
       fetchPendingRegistrations();
     }
     if (activeTab === 'monthly-report') { /* no fetch needed */ }
@@ -450,6 +446,8 @@ const AdminDashboard = () => {
       if (activeTab === 'dashboard') {
         fetchTodayAttendance();
         fetchPendingAttendance();
+        fetchEmployees();
+        fetchDashboardSummary();
       } else if (activeTab === 'attendance') {
         fetchAttendanceReport(attendancePage);
         fetchPendingAttendance();
@@ -599,21 +597,19 @@ const AdminDashboard = () => {
       const res = await api.get('/api/admin/employees');
       const employeesList = res.data.employees || [];
       setEmployees(employeesList);
-
-      // Ensure dashboard/report total employees uses the employees endpoint as authoritative
-      setAttendanceSummary((prev) => ({
-        ...prev,
-        total_employees: employeesList.length || prev.total_employees
-      }));
-
-      setReportOverview((prev) => ({
-        ...prev,
-        totalEmployees: employeesList.length || prev.totalEmployees
-      }));
     } catch {
       setError('Failed to fetch employees');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDashboardSummary = async () => {
+    try {
+      const res = await api.get('/api/admin/dashboard-summary');
+      setEmployeeTotal(Number(res.data?.total_employees) || 0);
+    } catch {
+      setError('Failed to fetch dashboard totals');
     }
   };
 
@@ -959,7 +955,10 @@ const AdminDashboard = () => {
   };
 
   const stats = {
-    totalEmployees: attendanceSummary.total_employees || 0,
+    // Attendance reports only contain employees with matching attendance rows
+    // (and may be date-filtered).  The employee endpoint is the authoritative
+    // source for the dashboard's total workforce count.
+    totalEmployees: employeeTotal,
     todayAttendance: attendanceSummary.today_attendance || 0,
     totalRecords: attendanceSummary.total_records || 0
   };
@@ -1448,8 +1447,8 @@ const AdminDashboard = () => {
                     {reg.face_image_path && (
                       <div className="mt-3">
                         <p className="text-sm font-semibold text-gray-700 mb-2">Registered Face</p>
-                        <img
-                          src={getStorageUrl(reg.face_image_path)}
+                        <ProtectedImage
+                          path={reg.face_image_path}
                           alt={`${reg.name} face`}
                           className="w-36 h-36 rounded-lg border border-gray-300 object-cover"
                         />
@@ -1457,7 +1456,8 @@ const AdminDashboard = () => {
                     )}
                     {reg.document_path && (
                       <a
-                        href={getStorageUrl(reg.document_path)}
+                        href="#document"
+                        onClick={(event) => { event.preventDefault(); downloadProtectedFile(reg.document_path); }}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-block mt-3 text-sm text-blue-600 hover:text-blue-800 underline"
@@ -1871,8 +1871,8 @@ const AdminDashboard = () => {
                     <td className="p-2 sm:p-4 text-xs sm:text-sm">{emp.employee_id}</td>
                     <td className="p-2 sm:p-4">
                       {emp.face_image_path ? (
-                        <img
-                          src={getStorageUrl(emp.face_image_path)}
+                        <ProtectedImage
+                          path={emp.face_image_path}
                           alt={`${emp.name} profile`}
                           className="h-12 w-12 rounded-full border border-gray-200 object-cover"
                         />
