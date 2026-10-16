@@ -3,5 +3,5 @@
   X-Frame-Options: DENY
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(self), geolocation=(self), microphone=()
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' blob: data:; connect-src 'self' https://dept-modern-intervention-recorders.trycloudflare.com; style-src 'self' 'unsafe-inline'; script-src 'self'
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' blob: data:; connect-src 'self' https://polyester-subdivision-timothy-lamp.trycloudflare.com https://dept-modern-intervention-recorders.trycloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
