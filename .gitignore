@@ -3,8 +3,8 @@
 dist/
 node_modules/
 
-# Local and deployment-specific environment values are not source code.
-.env
+# The tracked .env contains only the public backend address required by this
+# static Vite deployment. Keep environment-specific variants local.
 .env.*
 !.env.example
 
