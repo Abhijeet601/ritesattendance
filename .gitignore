@@ -3,3 +3,8 @@
 dist/
 node_modules/
 
+# Local and deployment-specific environment values are not source code.
+.env
+.env.*
+!.env.example
+

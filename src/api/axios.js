@@ -1,13 +1,9 @@
 import axios from 'axios';
-
-const configuredBackendUrl = import.meta.env.VITE_BACKEND_URL?.trim();
-const fallbackBackendUrl =
-  typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8001';
-const backendBaseUrl = (configuredBackendUrl || fallbackBackendUrl).replace(/\/+$/, '');
+import { backendBaseUrl, backendConfigurationError } from './backendUrl';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: backendBaseUrl, // FastAPI backend URL
+  baseURL: backendBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,6 +12,9 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
+    if (backendConfigurationError) {
+      return Promise.reject(new Error(backendConfigurationError));
+    }
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

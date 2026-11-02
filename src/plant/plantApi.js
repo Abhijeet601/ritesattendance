@@ -1,15 +1,14 @@
 import axios from 'axios';
-
-const configuredBackendUrl = import.meta.env.VITE_BACKEND_URL?.trim();
-const fallbackBackendUrl =
-  typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8001';
-const backendBaseUrl = (configuredBackendUrl || fallbackBackendUrl).replace(/\/+$/, '');
+import { backendBaseUrl, backendConfigurationError } from '../api/backendUrl';
 
 const plantApi = axios.create({
   baseURL: backendBaseUrl,
 });
 
 plantApi.interceptors.request.use((config) => {
+  if (backendConfigurationError) {
+    return Promise.reject(new Error(backendConfigurationError));
+  }
   const token = localStorage.getItem('plant_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

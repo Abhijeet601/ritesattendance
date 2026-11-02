@@ -57,10 +57,17 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
+      // The FastAPI endpoint declares username and password with Form(...).
+      // Use urlencoded form data explicitly so the browser sends the contract
+      // expected by the endpoint without a manually managed multipart boundary.
+      const loginPayload = new URLSearchParams({
+        username: formData.username.trim(),
+        password: formData.password,
+      });
       const response = await api.post(
         '/api/auth/admin/login',
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
+        loginPayload,
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       );
 
       // Save credentials if remember me is checked
@@ -83,7 +90,7 @@ const AdminLogin = () => {
 
       navigate('/admin-dashboard');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      setError(err.response?.data?.detail || err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
