@@ -9,6 +9,8 @@ const api = axios.create({
   },
 });
 
+const publicAuthPaths = new Set(['/api/login', '/api/auth/admin/login']);
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -16,7 +18,8 @@ api.interceptors.request.use(
       return Promise.reject(new Error(backendConfigurationError));
     }
     const token = localStorage.getItem('token');
-    if (token) {
+    const requestPath = config.url?.split('?')[0];
+    if (token && !publicAuthPaths.has(requestPath)) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
